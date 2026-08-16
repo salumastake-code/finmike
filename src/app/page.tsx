@@ -12,13 +12,15 @@ import {
 } from '@/lib/economy';
 
 import Onboarding from '@/components/Onboarding';
-import DreamGoalBar from '@/components/DreamGoalBar';
+import GrandpaIntro from '@/components/GrandpaIntro';
+import WorldMap from '@/components/WorldMap';
+import LocationPanel from '@/components/LocationPanel';
 import TokenBar from '@/components/TokenBar';
-import LifeMeters from '@/components/LifeMeters';
 import WeatherBadge from '@/components/WeatherBadge';
-import ActionPanel from '@/components/ActionPanel';
 import EventLog from '@/components/EventLog';
 import WorldCodeModal from '@/components/WorldCodeModal';
+
+type Location = 'stand' | 'tree' | 'home' | 'tortoise' | 'buzzybee' | 'wisefox';
 
 let logCounter = 0;
 function makeEntry(emoji: string, text: string, type: LogEntry['type']): LogEntry {
@@ -29,16 +31,16 @@ export default function Home() {
   const [save, setSave] = useState<PlayerSave | null>(null);
   const [log, setLog] = useState<LogEntry[]>([]);
   const [ready, setReady] = useState(false);
+  const [showIntro, setShowIntro] = useState(false);
   const [showWorldCode, setShowWorldCode] = useState(false);
+  const [activeLocation, setActiveLocation] = useState<Location | null>('stand');
 
-  // Load save on mount
   useEffect(() => {
     const existing = loadSave();
     if (existing) setSave(existing);
     setReady(true);
   }, []);
 
-  // Auto-save whenever save changes
   useEffect(() => {
     if (save) writeSave(save);
   }, [save]);
@@ -50,52 +52,42 @@ export default function Home() {
   function handleOnboardingComplete(name: string, age: number, dreamGoalId: string) {
     const newSave = createNewSave(name, age, dreamGoalId);
     setSave(newSave);
-    setLog([
-      makeEntry('🌍', `Welcome, ${name}! Your world is ready. Start by buying supplies for your lemonade stand.`, 'event'),
-    ]);
+    setShowIntro(true); // show Grandpa intro for new players
   }
 
+  // ---- Actions ----
   function handleBuySupplies() {
     if (!save) return;
     const result = buySupplies(save);
-    if ('error' in result) {
-      addLog(makeEntry('❌', result.error, 'bad'));
-      return;
-    }
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
     setSave(result);
-    addLog(makeEntry('🍋', `Bought 10 lemons for 5 coins. Stand ready!`, 'good'));
+    addLog(makeEntry('🍋', 'Bought 10 lemons for 5 coins. Ready to sell!', 'good'));
   }
 
   function handleRunStand() {
     if (!save) return;
     const result = runLemonadeStand(save);
-    if ('error' in result) {
-      addLog(makeEntry('❌', result.error, 'bad'));
-      return;
-    }
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
     const updated = applyStandResult(save, result);
     setSave(updated);
 
-    const weatherNote = save.weather === 'rainy'
-      ? ' (fewer customers — it\'s rainy!)'
-      : save.weather === 'stormy' ? ' (hardly anyone out in this storm!)' : '';
+    const weatherNote =
+      save.weather === 'rainy' ? ' (fewer customers — it\'s rainy!)' :
+      save.weather === 'stormy' ? ' (hardly anyone out in this storm!)' : '';
 
     if (result.cupsServed === 0) {
-      addLog(makeEntry('😔', `No cups sold today.${weatherNote}${save.lemonadeStand.hasHelper ? ' Your helper showed up but nobody came.' : ''}`, 'bad'));
+      addLog(makeEntry('😔', `No cups sold today.${weatherNote}`, 'bad'));
     } else {
-      addLog(makeEntry('🥤', `Sold ${result.cupsServed} cups → +${result.revenue} coins${result.helperCost ? ` (paid helper ${result.helperCost})` : ''}. Profit: +${result.profit}${weatherNote}`, 'good'));
+      addLog(makeEntry('🥤', `Sold ${result.cupsServed} cups → +${result.revenue} coins. Profit: +${result.profit}${weatherNote}`, 'good'));
     }
-
     if (result.limitingFactor === 'supplies') {
-      addLog(makeEntry('⚠️', 'You ran out of lemons before all customers were served. Buy more supplies next time!', 'neutral'));
+      addLog(makeEntry('⚠️', 'Ran out of lemons before all customers were served!', 'neutral'));
     }
 
-    // Check quest q1 — use functional update to avoid stale closure
     setSave(prev => {
       if (!prev) return prev;
       const q1 = prev.quests.find(q => q.id === 'q1');
       if (!q1 || q1.completed || result.cupsServed < 1) return prev;
-      // Complete the quest
       setTimeout(() => addLog(makeEntry('🎉', 'Quest complete: First Sale! +5 coins bonus!', 'event')), 0);
       return {
         ...prev,
@@ -108,36 +100,27 @@ export default function Home() {
   function handlePlantTree() {
     if (!save) return;
     const result = plantLemonTree(save);
-    if ('error' in result) {
-      addLog(makeEntry('❌', result.error, 'bad'));
-      return;
-    }
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
     setSave(result);
-    addLog(makeEntry('🌱', `You planted a lemon tree! It'll be ready to harvest in ${result.lemonTree.matureAt} days. Wise Fox approves.`, 'good'));
+    addLog(makeEntry('🌱', `Planted a lemon tree! Ready to harvest in ${result.lemonTree.matureAt} days.`, 'good'));
   }
 
   function handleHarvestTree() {
     if (!save) return;
     const result = harvestLemonTree(save);
-    if ('error' in result) {
-      addLog(makeEntry('❌', result.error, 'bad'));
-      return;
-    }
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
     setSave(result);
-    addLog(makeEntry('🍋', `Harvested ${save.lemonTree.lemonYield} lemons from your tree — for free!`, 'good'));
+    addLog(makeEntry('🍋', `Harvested ${save.lemonTree.lemonYield} free lemons from your tree!`, 'good'));
   }
 
   function handleContribute(amount: number) {
     if (!save) return;
     const result = contributeToDream(save, amount);
-    if ('error' in result) {
-      addLog(makeEntry('❌', result.error, 'bad'));
-      return;
-    }
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
     setSave(result);
     const pct = Math.round((result.dreamGoal.saved / result.dreamGoal.cost) * 100);
     if (result.dreamGoal.unlocked) {
-      addLog(makeEntry('🎉', `YOU DID IT! You reached your Dream Goal: ${result.dreamGoal.name}!`, 'event'));
+      addLog(makeEntry('🎉', `YOU DID IT! Dream Goal reached: ${result.dreamGoal.name}!`, 'event'));
     } else {
       addLog(makeEntry('⭐', `Saved ${amount} coins toward your ${result.dreamGoal.name}! (${pct}% there)`, 'good'));
     }
@@ -146,26 +129,15 @@ export default function Home() {
   function handleHireHelper() {
     if (!save) return;
     if (save.lemonadeStand.hasHelper) return;
-    if (save.coins < 10) {
-      addLog(makeEntry('❌', 'You need 10 coins to hire a helper.', 'bad'));
-      return;
-    }
-    setSave({
-      ...save,
-      coins: save.coins - 10,
-      totalSpent: save.totalSpent + 10,
-      lemonadeStand: { ...save.lemonadeStand, hasHelper: true },
-    });
-    addLog(makeEntry('👦', 'You hired a helper! They\'ll run the stand so you don\'t have to spend tokens on it.', 'good'));
+    if (save.coins < 10) { addLog(makeEntry('❌', 'You need 10 coins to hire a helper.', 'bad')); return; }
+    setSave({ ...save, coins: save.coins - 10, totalSpent: save.totalSpent + 10, lemonadeStand: { ...save.lemonadeStand, hasHelper: true } });
+    addLog(makeEntry('👦', 'Hired a helper! They\'ll run the stand — you keep your tokens.', 'good'));
   }
 
   function handleSetPrice(price: number) {
     if (!save) return;
-    setSave({
-      ...save,
-      lemonadeStand: { ...save.lemonadeStand, pricePerCup: price },
-    });
-    const note = price === 1 ? 'More customers, less per cup.' : price >= 4 ? 'Big profit per cup, but fewer buyers.' : 'Good middle ground.';
+    setSave({ ...save, lemonadeStand: { ...save.lemonadeStand, pricePerCup: price } });
+    const note = price === 1 ? 'More customers, less per cup.' : price >= 4 ? 'Big profit per cup, fewer buyers.' : 'Good balance.';
     addLog(makeEntry('🏷️', `Price set to ${price} 🪙/cup. ${note}`, 'neutral'));
   }
 
@@ -173,21 +145,18 @@ export default function Home() {
     if (!save) return;
     const updated = advanceDay(save);
     setSave(updated);
-
     const weatherEmojis: Record<string, string> = { sunny: '☀️', cloudy: '⛅', rainy: '🌧️', stormy: '⛈️' };
-    const demandNote = weatherDemandMultiplier(updated.weather) < 1
-      ? ` Lemonade demand will be lower today.`
-      : ' Great day for lemonade!';
-
+    const demandNote = weatherDemandMultiplier(updated.weather) < 1 ? ' Demand will be lower today.' : ' Great day for lemonade!';
     addLog(makeEntry(
       weatherEmojis[updated.weather] ?? '🌤️',
-      `Morning of Day ${updated.dayNumber}. Weather: ${updated.weather}.${demandNote}`,
-      updated.weather === 'rainy' || updated.weather === 'stormy' ? 'bad' : 'neutral'
+      `Morning of Day ${updated.dayNumber}. ${updated.weather.charAt(0).toUpperCase() + updated.weather.slice(1)}.${demandNote}`,
+      updated.weather === 'rainy' || updated.weather === 'stormy' ? 'bad' : 'neutral',
     ));
-
     if (updated.lemonTree.planted && updated.lemonTree.daysOld >= updated.lemonTree.matureAt && save.lemonTree.daysOld < save.lemonTree.matureAt) {
       addLog(makeEntry('🌳', 'Your lemon tree is ready to harvest!', 'event'));
     }
+    // Nudge player toward home after ending day
+    setActiveLocation('stand');
   }
 
   // ---- Render ----
@@ -202,12 +171,18 @@ export default function Home() {
     );
   }
 
-  // tokensLeft used by ActionPanel disabled logic (passed via save prop)
-
   return (
-    <main className="min-h-screen bg-gradient-to-b from-sky-100 to-green-100">
+    <main className="min-h-screen bg-gray-50">
 
-      {/* World Code Modal */}
+      {/* Grandpa intro overlay */}
+      {showIntro && (
+        <GrandpaIntro
+          playerName={save.playerName}
+          onDone={() => setShowIntro(false)}
+        />
+      )}
+
+      {/* World Code modal */}
       {showWorldCode && (
         <WorldCodeModal
           save={save}
@@ -217,96 +192,96 @@ export default function Home() {
       )}
 
       {/* Top bar */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
+      <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div className="flex items-center gap-2">
           <span className="text-xl">🌍</span>
-          <span className="font-bold text-green-700">{save.playerName}'s World</span>
+          <span className="font-bold text-green-700 text-sm">{save.playerName}'s World</span>
+          <span className="text-xs text-gray-400">· Day {save.dayNumber}</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-1.5">
-            <span className="text-lg">🪙</span>
+            <span className="text-base">🪙</span>
             <span className="font-bold text-yellow-700">{save.coins}</span>
           </div>
-          <div className="text-xs text-gray-400">
-            {save.lemonadeStand.supplyCount} 🍋
-          </div>
-          <button
-            onClick={() => setShowWorldCode(true)}
-            className="text-lg hover:scale-110 transition-transform"
-            title="World Code"
-          >
-            🗺️
-          </button>
+          <span className="text-xs text-gray-400">{save.lemonadeStand.supplyCount}🍋</span>
+          <button onClick={() => setShowWorldCode(true)} className="text-lg hover:scale-110 transition-transform" title="World Code">🗺️</button>
         </div>
       </div>
 
-      {/* World view — placeholder town art */}
-      <div className="relative h-48 bg-gradient-to-b from-sky-300 to-green-300 overflow-hidden flex items-end justify-center pb-2 gap-6">
-        <div className="text-center">
-          <div className="text-6xl">{save.lemonTree.planted ? (save.lemonTree.daysOld >= save.lemonTree.matureAt ? '🌳' : '🌱') : '⬜'}</div>
-          <div className="text-xs text-white/80 font-medium">Lemon Tree</div>
+      {/* World Map */}
+      <WorldMap
+        save={save}
+        weather={save.weather}
+        activeLocation={activeLocation}
+        onSelectLocation={setActiveLocation}
+      />
+
+      {/* Weather + Token strip */}
+      <div className="flex gap-2 px-4 py-2 bg-white border-b border-gray-100">
+        <WeatherBadge weather={save.weather} season={save.season} day={save.dayNumber} />
+        <div className="flex-1">
+          <TokenBar tokens={save.tokens} />
         </div>
-        <div className="text-center">
-          <div className="text-6xl">🏪</div>
-          <div className="text-xs text-white/80 font-medium">Stand</div>
+      </div>
+
+      {/* Location panel */}
+      <div className="max-w-lg mx-auto px-4 pt-4 pb-2">
+        {/* Location tab selector */}
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-3 scrollbar-hide">
+          {([
+            { id: 'stand',    emoji: '🏪', label: 'Stand' },
+            { id: 'tree',     emoji: '🌳', label: 'Tree' },
+            { id: 'home',     emoji: '🏡', label: 'Home' },
+            { id: 'tortoise', emoji: '🐢', label: 'Tortoise' },
+            { id: 'buzzybee', emoji: '🐝', label: 'Buzzy' },
+            { id: 'wisefox',  emoji: '🦊', label: 'Fox' },
+          ] as const).map(loc => (
+            <button
+              key={loc.id}
+              onClick={() => setActiveLocation(loc.id)}
+              className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                activeLocation === loc.id
+                  ? 'bg-green-500 text-white shadow'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+            >
+              <span>{loc.emoji}</span>{loc.label}
+            </button>
+          ))}
         </div>
-        <div className="text-center">
-          <div className="text-6xl">🏡</div>
-          <div className="text-xs text-white/80 font-medium">Home</div>
-        </div>
-        {/* Weather overlay */}
-        {save.weather === 'rainy' && (
-          <div className="absolute inset-0 bg-blue-400/20 flex items-start justify-center pt-4">
-            <span className="text-4xl animate-bounce">🌧️</span>
-          </div>
-        )}
-        {save.weather === 'stormy' && (
-          <div className="absolute inset-0 bg-slate-600/30 flex items-start justify-center pt-4">
-            <span className="text-4xl animate-pulse">⛈️</span>
+
+        {/* Active location content */}
+        {activeLocation && (
+          <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
+            <LocationPanel
+              location={activeLocation}
+              save={save}
+              onBuySupplies={handleBuySupplies}
+              onRunStand={handleRunStand}
+              onHireHelper={handleHireHelper}
+              onSetPrice={handleSetPrice}
+              onPlantTree={handlePlantTree}
+              onHarvestTree={handleHarvestTree}
+              onContribute={handleContribute}
+              onNextDay={handleNextDay}
+            />
           </div>
         )}
       </div>
 
-      {/* Main content */}
-      <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
-        {/* Weather + tokens row */}
-        <div className="flex gap-3">
-          <WeatherBadge weather={save.weather} season={save.season} day={save.dayNumber} />
-          <div className="flex-1">
-            <TokenBar tokens={save.tokens} />
-          </div>
-        </div>
-
-        {/* Dream goal */}
-        <DreamGoalBar goal={save.dreamGoal} onContribute={handleContribute} coins={save.coins} />
-
-        {/* Action panel */}
-        <ActionPanel
-          save={save}
-          onBuySupplies={handleBuySupplies}
-          onRunStand={handleRunStand}
-          onPlantTree={handlePlantTree}
-          onHarvestTree={handleHarvestTree}
-          onNextDay={handleNextDay}
-          onSetPrice={handleSetPrice}
-          onHireHelper={handleHireHelper}
-        />
-
-        {/* Event log */}
+      {/* Event log */}
+      <div className="max-w-lg mx-auto px-4 pb-4 mt-2">
         <EventLog entries={log} />
+      </div>
 
-        {/* Life meters */}
-        <LifeMeters meters={save.lifeMeters} />
-
-        {/* Debug reset */}
-        <div className="text-center pt-2 pb-8">
-          <button
-            onClick={() => { if (confirm('Start over?')) { localStorage.clear(); setSave(null); setLog([]); } }}
-            className="text-xs text-gray-300 hover:text-gray-400 transition-colors"
-          >
-            reset world
-          </button>
-        </div>
+      {/* Reset */}
+      <div className="text-center pb-10">
+        <button
+          onClick={() => { if (confirm('Start over?')) { localStorage.clear(); setSave(null); setLog([]); } }}
+          className="text-xs text-gray-200 hover:text-gray-400 transition-colors"
+        >
+          reset world
+        </button>
       </div>
     </main>
   );
