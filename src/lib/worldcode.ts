@@ -1,4 +1,4 @@
-import pako from 'pako';
+import * as pako from 'pako';
 import type { PlayerSave } from '@/types/game';
 
 // ============================================================
