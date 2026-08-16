@@ -9,9 +9,10 @@ interface Props {
   onPlantTree: () => void;
   onHarvestTree: () => void;
   onNextDay: () => void;
+  onSetPrice: (price: number) => void;
 }
 
-export default function ActionPanel({ save, onBuySupplies, onRunStand, onPlantTree, onHarvestTree, onNextDay }: Props) {
+export default function ActionPanel({ save, onBuySupplies, onRunStand, onPlantTree, onHarvestTree, onNextDay, onSetPrice }: Props) {
   const tokensLeft = save.tokens.total - save.tokens.spent;
   const treeReady = save.lemonTree.planted && save.lemonTree.daysOld >= save.lemonTree.matureAt;
   const daysToGrow = save.lemonTree.planted
@@ -77,6 +78,32 @@ export default function ActionPanel({ save, onBuySupplies, onRunStand, onPlantTr
             <div className="text-xs bg-black/20 rounded-lg px-2 py-1">{action.cost}</div>
           </button>
         ))}
+      </div>
+
+      {/* Price control */}
+      <div className="bg-white border border-gray-200 rounded-xl p-3">
+        <div className="text-xs font-bold text-gray-500 mb-2">🏷️ Lemonade Price</div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => onSetPrice(Math.max(1, save.lemonadeStand.pricePerCup - 1))}
+            disabled={save.lemonadeStand.pricePerCup <= 1}
+            className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-30 font-bold text-lg"
+          >−</button>
+          <div className="flex-1 text-center">
+            <span className="text-2xl font-bold text-yellow-600">{save.lemonadeStand.pricePerCup}</span>
+            <span className="text-sm text-gray-400"> 🪙/cup</span>
+          </div>
+          <button
+            onClick={() => onSetPrice(Math.min(5, save.lemonadeStand.pricePerCup + 1))}
+            disabled={save.lemonadeStand.pricePerCup >= 5}
+            className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-30 font-bold text-lg"
+          >+</button>
+        </div>
+        <div className="text-xs text-center text-gray-400 mt-1">
+          {save.lemonadeStand.pricePerCup <= 1 ? 'Low price → more customers' :
+           save.lemonadeStand.pricePerCup >= 4 ? 'High price → fewer customers' :
+           'Good balance'}
+        </div>
       </div>
 
       <button

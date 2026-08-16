@@ -88,19 +88,19 @@ export default function Home() {
       addLog(makeEntry('⚠️', 'You ran out of lemons before all customers were served. Buy more supplies next time!', 'neutral'));
     }
 
-    // Check quest q1
-    const q1 = updated.quests.find(q => q.id === 'q1');
-    if (q1 && !q1.completed && result.cupsServed >= 1) {
-      const newSave = {
-        ...updated,
-        coins: updated.coins + 5,
-        quests: updated.quests.map((q: typeof updated.quests[0]) =>
-          q.id === 'q1' ? { ...q, completed: true } : q
-        ),
+    // Check quest q1 — use functional update to avoid stale closure
+    setSave(prev => {
+      if (!prev) return prev;
+      const q1 = prev.quests.find(q => q.id === 'q1');
+      if (!q1 || q1.completed || result.cupsServed < 1) return prev;
+      // Complete the quest
+      setTimeout(() => addLog(makeEntry('🎉', 'Quest complete: First Sale! +5 coins bonus!', 'event')), 0);
+      return {
+        ...prev,
+        coins: prev.coins + 5,
+        quests: prev.quests.map(q => q.id === 'q1' ? { ...q, completed: true } : q),
       };
-      setSave(newSave);
-      addLog(makeEntry('🎉', 'Quest complete: First Sale! +5 coins bonus!', 'event'));
-    }
+    });
   }
 
   function handlePlantTree() {
@@ -141,6 +141,16 @@ export default function Home() {
     }
   }
 
+  function handleSetPrice(price: number) {
+    if (!save) return;
+    setSave({
+      ...save,
+      lemonadeStand: { ...save.lemonadeStand, pricePerCup: price },
+    });
+    const note = price === 1 ? 'More customers, less per cup.' : price >= 4 ? 'Big profit per cup, but fewer buyers.' : 'Good middle ground.';
+    addLog(makeEntry('🏷️', `Price set to ${price} 🪙/cup. ${note}`, 'neutral'));
+  }
+
   function handleNextDay() {
     if (!save) return;
     const updated = advanceDay(save);
@@ -169,7 +179,7 @@ export default function Home() {
     return <Onboarding onComplete={handleOnboardingComplete} />;
   }
 
-  const tokensLeft = save.tokens.total - save.tokens.spent;
+  // tokensLeft used by ActionPanel disabled logic (passed via save prop)
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-sky-100 to-green-100">
@@ -238,6 +248,7 @@ export default function Home() {
           onPlantTree={handlePlantTree}
           onHarvestTree={handleHarvestTree}
           onNextDay={handleNextDay}
+          onSetPrice={handleSetPrice}
         />
 
         {/* Event log */}

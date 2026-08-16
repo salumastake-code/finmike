@@ -51,13 +51,19 @@ export function runLemonadeStand(save: PlayerSave): StandResult | { error: strin
   const { lemonadeStand, tokens, weather } = save;
 
   if (!lemonadeStand.owned) return { error: 'You don\'t have a lemonade stand yet.' };
-  if (tokens.spent + TOKEN_COST_RUN_STAND > tokens.total) return { error: 'Not enough activity tokens left today.' };
+  if (!lemonadeStand.hasHelper && tokens.spent + TOKEN_COST_RUN_STAND > tokens.total) {
+    return { error: 'Not enough activity tokens left today.' };
+  }
   if (lemonadeStand.supplyCount === 0) return { error: 'You\'re out of lemons! Buy supplies first.' };
 
   const customers = simulateCustomers(weather, lemonadeStand.pricePerCup);
   const maxCups = lemonadeStand.supplyCount * CUPS_PER_LEMON;
   const cupsServed = Math.min(customers, maxCups);
-  const limitingFactor = cupsServed === customers ? (cupsServed === maxCups ? null : 'customers') : 'supplies';
+  // limitingFactor: were we capped by supplies or by customer count?
+  const limitingFactor: 'supplies' | 'customers' | null =
+    cupsServed === 0 ? null :
+    maxCups < customers ? 'supplies' :
+    customers < maxCups ? 'customers' : null;
 
   const revenue = cupsServed * lemonadeStand.pricePerCup;
   const helperCost = lemonadeStand.hasHelper ? HELPER_WAGE_PER_DAY : 0;
@@ -187,10 +193,13 @@ export function advanceDay(save: PlayerSave): PlayerSave {
   updated.weather = randomWeather();
 
   // Slow life meter decay — keeps balance in play
+  // Note: must spread from save.lifeMeters BEFORE other mutations
   updated.lifeMeters = {
-    ...save.lifeMeters,
+    financialSecurity: save.lifeMeters.financialSecurity,
     health: Math.max(0, save.lifeMeters.health - 1),
     happiness: Math.max(0, save.lifeMeters.happiness - 1),
+    relationships: save.lifeMeters.relationships,
+    futureSecurity: save.lifeMeters.futureSecurity,
   };
 
   return updated;
