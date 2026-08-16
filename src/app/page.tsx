@@ -18,6 +18,7 @@ import LifeMeters from '@/components/LifeMeters';
 import WeatherBadge from '@/components/WeatherBadge';
 import ActionPanel from '@/components/ActionPanel';
 import EventLog from '@/components/EventLog';
+import WorldCodeModal from '@/components/WorldCodeModal';
 
 let logCounter = 0;
 function makeEntry(emoji: string, text: string, type: LogEntry['type']): LogEntry {
@@ -28,6 +29,7 @@ export default function Home() {
   const [save, setSave] = useState<PlayerSave | null>(null);
   const [log, setLog] = useState<LogEntry[]>([]);
   const [ready, setReady] = useState(false);
+  const [showWorldCode, setShowWorldCode] = useState(false);
 
   // Load save on mount
   useEffect(() => {
@@ -176,13 +178,28 @@ export default function Home() {
   if (!ready) return null;
 
   if (!save) {
-    return <Onboarding onComplete={handleOnboardingComplete} />;
+    return (
+      <Onboarding
+        onComplete={handleOnboardingComplete}
+        onLoadCode={(loaded) => { setSave(loaded); writeSave(loaded); }}
+      />
+    );
   }
 
   // tokensLeft used by ActionPanel disabled logic (passed via save prop)
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-sky-100 to-green-100">
+
+      {/* World Code Modal */}
+      {showWorldCode && (
+        <WorldCodeModal
+          save={save}
+          onClose={() => setShowWorldCode(false)}
+          onLoad={(loaded) => { setSave(loaded); writeSave(loaded); setLog([]); }}
+        />
+      )}
+
       {/* Top bar */}
       <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-2">
@@ -197,6 +214,13 @@ export default function Home() {
           <div className="text-xs text-gray-400">
             {save.lemonadeStand.supplyCount} 🍋
           </div>
+          <button
+            onClick={() => setShowWorldCode(true)}
+            className="text-lg hover:scale-110 transition-transform"
+            title="World Code"
+          >
+            🗺️
+          </button>
         </div>
       </div>
 
