@@ -10,9 +10,10 @@ interface Props {
   onHarvestTree: () => void;
   onNextDay: () => void;
   onSetPrice: (price: number) => void;
+  onHireHelper: () => void;
 }
 
-export default function ActionPanel({ save, onBuySupplies, onRunStand, onPlantTree, onHarvestTree, onNextDay, onSetPrice }: Props) {
+export default function ActionPanel({ save, onBuySupplies, onRunStand, onPlantTree, onHarvestTree, onNextDay, onSetPrice, onHireHelper }: Props) {
   const tokensLeft = save.tokens.total - save.tokens.spent;
   const treeReady = save.lemonTree.planted && save.lemonTree.daysOld >= save.lemonTree.matureAt;
   const daysToGrow = save.lemonTree.planted
@@ -79,6 +80,32 @@ export default function ActionPanel({ save, onBuySupplies, onRunStand, onPlantTr
           </button>
         ))}
       </div>
+
+      {/* Hire helper */}
+      {!save.lemonadeStand.hasHelper && (
+        <button
+          onClick={onHireHelper}
+          disabled={save.coins < 10}
+          className="w-full flex items-center gap-3 p-3 rounded-xl border-2 border-dashed border-purple-300 hover:border-purple-400 hover:bg-purple-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          <span className="text-2xl">👦</span>
+          <div className="flex-1 text-left">
+            <div className="text-sm font-bold text-purple-700">Hire a Helper</div>
+            <div className="text-xs text-purple-400">10 coins — they run the stand, you save tokens</div>
+          </div>
+          <div className="text-xs bg-purple-100 text-purple-600 rounded-lg px-2 py-1 font-bold">10 🪙</div>
+        </button>
+      )}
+      {save.lemonadeStand.hasHelper && (
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-purple-50 border border-purple-200">
+          <span className="text-2xl">👦</span>
+          <div className="flex-1">
+            <div className="text-sm font-bold text-purple-700">Helper is working!</div>
+            <div className="text-xs text-purple-400">Stand runs for free (pays {COSTS.HELPER_WAGE_PER_DAY} 🪙/session from revenue)</div>
+          </div>
+          <span className="text-green-500 text-lg">✅</span>
+        </div>
+      )}
 
       {/* Price control */}
       <div className="bg-white border border-gray-200 rounded-xl p-3">

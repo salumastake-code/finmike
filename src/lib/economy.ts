@@ -67,7 +67,8 @@ export function runLemonadeStand(save: PlayerSave): StandResult | { error: strin
 
   const revenue = cupsServed * lemonadeStand.pricePerCup;
   const helperCost = lemonadeStand.hasHelper ? HELPER_WAGE_PER_DAY : 0;
-  const profit = revenue - helperCost;
+  // Profit floored at 0 — the helper doesn't take money you don't have
+  const profit = Math.max(0, revenue - helperCost);
   const tokensUsed = lemonadeStand.hasHelper ? 0 : TOKEN_COST_RUN_STAND;
 
   return { cupsServed, revenue, suppliesUsed: cupsServed, helperCost, profit, tokensUsed, limitingFactor };

@@ -5,9 +5,9 @@ import type { PlayerSave } from '@/types/game';
 // ============================================================
 
 export const DREAM_GOALS = [
-  { id: 'bicycle', name: 'Red Bicycle', emoji: '🚲', cost: 120 },
-  { id: 'puppy',   name: 'Puppy',       emoji: '🐶', cost: 200 },
-  { id: 'treehouse', name: 'Treehouse', emoji: '🌳', cost: 350 },
+  { id: 'bicycle',   name: 'Red Bicycle', emoji: '🚲', cost: 80  },
+  { id: 'puppy',     name: 'Puppy',       emoji: '🐶', cost: 120 },
+  { id: 'treehouse', name: 'Treehouse',   emoji: '🌳', cost: 180 },
 ];
 
 export const NEIGHBORS = [

@@ -81,7 +81,7 @@ export default function Home() {
       : save.weather === 'stormy' ? ' (hardly anyone out in this storm!)' : '';
 
     if (result.cupsServed === 0) {
-      addLog(makeEntry('😔', `No cups sold today.${weatherNote}`, 'bad'));
+      addLog(makeEntry('😔', `No cups sold today.${weatherNote}${save.lemonadeStand.hasHelper ? ' Your helper showed up but nobody came.' : ''}`, 'bad'));
     } else {
       addLog(makeEntry('🥤', `Sold ${result.cupsServed} cups → +${result.revenue} coins${result.helperCost ? ` (paid helper ${result.helperCost})` : ''}. Profit: +${result.profit}${weatherNote}`, 'good'));
     }
@@ -141,6 +141,22 @@ export default function Home() {
     } else {
       addLog(makeEntry('⭐', `Saved ${amount} coins toward your ${result.dreamGoal.name}! (${pct}% there)`, 'good'));
     }
+  }
+
+  function handleHireHelper() {
+    if (!save) return;
+    if (save.lemonadeStand.hasHelper) return;
+    if (save.coins < 10) {
+      addLog(makeEntry('❌', 'You need 10 coins to hire a helper.', 'bad'));
+      return;
+    }
+    setSave({
+      ...save,
+      coins: save.coins - 10,
+      totalSpent: save.totalSpent + 10,
+      lemonadeStand: { ...save.lemonadeStand, hasHelper: true },
+    });
+    addLog(makeEntry('👦', 'You hired a helper! They\'ll run the stand so you don\'t have to spend tokens on it.', 'good'));
   }
 
   function handleSetPrice(price: number) {
@@ -273,6 +289,7 @@ export default function Home() {
           onHarvestTree={handleHarvestTree}
           onNextDay={handleNextDay}
           onSetPrice={handleSetPrice}
+          onHireHelper={handleHireHelper}
         />
 
         {/* Event log */}
