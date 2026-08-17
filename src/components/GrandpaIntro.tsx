@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 interface Step {
   speaker: string;
@@ -22,31 +22,32 @@ const STEPS: Step[] = [
   {
     speaker: 'Grandpa',
     emoji: '👴',
-    text: "Here's how it works: you buy lemons, squeeze them into cups, and sell them to folks walking by. You keep the coins!",
-    highlight: 'stand',
+    text: "See the map up top? Tap on Your Stand to get started. That's where you'll buy lemons and sell lemonade!",
+    highlight: 'map',
   },
   {
     speaker: 'Grandpa',
     emoji: '👴',
-    text: "Every day you get Activity Tokens — think of them like your energy. Spend them wisely. You can't do everything at once!",
+    text: "Every day you get Activity Tokens — those blue dots. Think of them like your energy. Spend them wisely!",
     highlight: 'tokens',
   },
   {
     speaker: 'Grandpa',
     emoji: '👴',
-    text: "Now, is there something special you've been saving up for? A dream goal gives you something to work toward. That's what makes it fun!",
-    highlight: 'dream',
+    text: "When you're ready to sleep and start a new day, tap Home on the map. That's also where you save toward your Dream Goal!",
+    highlight: 'home',
   },
   {
     speaker: 'Grandpa',
     emoji: '👴',
-    text: "One more thing — keep an eye on the weather. Sunny days bring lots of customers. Rainy days... not so much.",
+    text: "Keep an eye on the weather too. Sunny days bring lots of customers. Rainy days... not so much.",
     highlight: 'weather',
   },
   {
     speaker: 'Grandpa',
     emoji: '👴',
-    text: "That's all you need to get started. Go on now — the stand is yours. I'll be right next door if you need me. 😄",
+    text: "That's all you need! Go on now — tap Your Stand and make your first sale. I'll be right next door. 😄",
+    highlight: 'map',
   },
 ];
 
@@ -60,20 +61,34 @@ export default function GrandpaIntro({ playerName, onDone }: Props) {
   const current = STEPS[step];
   const isLast = step === STEPS.length - 1;
 
+  // Inline highlight callouts — shown inside the dialogue box, reliable on all screen sizes
+  const highlightContent: Record<string, React.ReactNode> = {
+    map: (
+      <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2 text-sm text-green-800">
+        <span className="text-xl">👆</span> Look at the map above and tap <strong>Your Stand</strong>
+      </div>
+    ),
+    tokens: (
+      <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2 text-sm text-indigo-800">
+        <span className="text-xl">⚡</span> Those are your <strong>Activity Tokens</strong> — the blue dots near the weather
+      </div>
+    ),
+    home: (
+      <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">
+        <span className="text-xl">🏡</span> Tap <strong>Home</strong> on the map or in the tab bar below
+      </div>
+    ),
+    weather: (
+      <div className="flex items-center gap-2 bg-sky-50 border border-sky-200 rounded-xl px-3 py-2 text-sm text-sky-800">
+        <span className="text-xl">☀️</span> The <strong>weather</strong> shows next to your activity tokens
+      </div>
+    ),
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-end pb-6 px-4"
       style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.15), rgba(0,0,0,0.4))' }}>
 
-      {/* Scene hint arrows — contextual highlights */}
-      {current.highlight === 'stand' && (
-        <div className="absolute top-32 left-1/2 -translate-x-4 text-4xl animate-bounce">👆</div>
-      )}
-      {current.highlight === 'tokens' && (
-        <div className="absolute top-56 right-8 text-3xl animate-bounce">👈</div>
-      )}
-      {current.highlight === 'dream' && (
-        <div className="absolute top-64 left-1/2 -translate-x-12 text-3xl animate-bounce">👇</div>
-      )}
 
       {/* Dialogue box */}
       <div className="w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden">
@@ -89,10 +104,14 @@ export default function GrandpaIntro({ playerName, onDone }: Props) {
         </div>
 
         {/* Dialogue text */}
-        <div className="px-5 py-4 min-h-[90px]">
+        <div className="px-5 py-4 space-y-3">
           <p className="text-gray-800 leading-relaxed text-base">
             {step === 0 ? `Well, hello there, ${playerName}! ` : ''}{current.text}
           </p>
+          {/* Inline contextual highlight — no broken absolute positioning */}
+          {current.highlight && highlightContent[current.highlight] && (
+            <div>{highlightContent[current.highlight]}</div>
+          )}
         </div>
 
         {/* Progress dots */}
