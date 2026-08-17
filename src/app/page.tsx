@@ -10,10 +10,16 @@ import {
   contributeToDream, advanceDay,
   weatherDemandMultiplier,
 } from '@/lib/economy';
+import { plantCrop, harvestPlot, sellAtMarket, initGarden, advanceGardenDay } from '@/lib/garden';
+import { feedPet, playWithPet, initPet, advancePetDay } from '@/lib/pet';
+import type { CropId } from '@/types/game';
 
 import Onboarding from '@/components/Onboarding';
 import GrandpaIntro from '@/components/GrandpaIntro';
 import DreamCelebration, { NEXT_GOALS } from '@/components/DreamCelebration';
+import GardenPanel from '@/components/GardenPanel';
+import PetPanel from '@/components/PetPanel';
+import TreehousePanel from '@/components/TreehousePanel';
 import WorldMap from '@/components/WorldMap';
 import LocationPanel from '@/components/LocationPanel';
 import TokenBar from '@/components/TokenBar';
@@ -21,7 +27,7 @@ import WeatherBadge from '@/components/WeatherBadge';
 import EventLog from '@/components/EventLog';
 import WorldCodeModal from '@/components/WorldCodeModal';
 
-type Location = 'stand' | 'tree' | 'home' | 'tortoise' | 'buzzybee' | 'wisefox';
+type Location = 'stand' | 'tree' | 'home' | 'tortoise' | 'buzzybee' | 'wisefox' | 'garden' | 'pet' | 'treehouse';
 
 let logCounter = 0;
 function makeEntry(emoji: string, text: string, type: LogEntry['type']): LogEntry {
@@ -143,6 +149,95 @@ export default function Home() {
     addLog(makeEntry('🏷️', `Price set to ${price} 💵/cup. ${note}`, 'neutral'));
   }
 
+  // ---- Garden handlers ----
+  function handlePlantCrop(cropId: CropId) {
+    if (!save) return;
+    const result = plantCrop(save, cropId);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    setSave(result);
+    const { CROPS } = require('@/lib/garden');
+    addLog(makeEntry(CROPS[cropId].emoji, `Planted ${CROPS[cropId].name}! Grows in ${CROPS[cropId].growDays} day(s).`, 'good'));
+  }
+
+  function handleHarvestPlot(plotId: string) {
+    if (!save) return;
+    const result = harvestPlot(save, plotId);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    setSave(result);
+    addLog(makeEntry('🧺', 'Harvested! Head to the market to sell.', 'good'));
+  }
+
+  function handleSellAtMarket(cropId: CropId) {
+    if (!save) return;
+    const result = sellAtMarket(save, cropId);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    const prev = save.garden?.marketInventory[cropId] ?? 0;
+    const { CROPS } = require('@/lib/garden');
+    const earned = prev * CROPS[cropId].sellPrice;
+    setSave(result);
+    addLog(makeEntry('💵', `Sold ${prev}x ${CROPS[cropId].name} for $${earned}!`, 'good'));
+  }
+
+  // ---- Pet handlers ----
+  function handleFeedPet() {
+    if (!save) return;
+    const result = feedPet(save);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    setSave(result);
+    addLog(makeEntry('🍖', `${save.pet?.name} ate happily! +20 happiness.`, 'good'));
+  }
+
+  function handlePlayWithPet() {
+    if (!save) return;
+    const result = playWithPet(save);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    setSave(result);
+    addLog(makeEntry('🎾', `${save.pet?.name} had a great time! +25 happiness.`, 'good'));
+  }
+
+  function handleNamePet(name: string) {
+    if (!save) return;
+    setSave({ ...save, pet: initPet(name) });
+    addLog(makeEntry('🐶', `${name} is home! Make sure to feed and play every day.`, 'event'));
+  }
+
+  // ---- Treehouse handlers ----
+  function handleVisitTreehouse() {
+    if (!save) return;
+    const tokensLeft = save.tokens.total - save.tokens.spent;
+    if (tokensLeft < 1) { addLog(makeEntry('❌', 'Not enough tokens to climb up today.', 'bad')); return; }
+    setSave({
+      ...save,
+      tokens: { ...save.tokens, spent: save.tokens.spent + 1 },
+      treehouse: { visited: true, questGiven: true, butterflies: save.treehouse?.butterflies ?? [], decorations: save.treehouse?.decorations ?? [] },
+    });
+    addLog(makeEntry('🌳', 'You climbed up to your treehouse! Grandpa was right — it\'s magical up here.', 'event'));
+  }
+
+  function handleCatchButterfly() {
+    if (!save || !save.treehouse) return;
+    const tokensLeft = save.tokens.total - save.tokens.spent;
+    if (tokensLeft < 1) { addLog(makeEntry('❌', 'Not enough tokens.', 'bad')); return; }
+    const allButterflies = ['blue', 'yellow', 'purple', 'golden'];
+    const uncaught = allButterflies.filter(b => !save.treehouse!.butterflies.includes(b));
+    if (uncaught.length === 0) { addLog(makeEntry('🦋', 'You\'ve caught them all!', 'good')); return; }
+    // Weighted catch chance: common easy, legendary hard
+    const weights: Record<string, number> = { blue: 60, yellow: 55, purple: 25, golden: 8 };
+    const available = uncaught.filter(b => Math.random() * 100 < weights[b]);
+    const caught = available.length > 0 ? available[Math.floor(Math.random() * available.length)] : null;
+    const names: Record<string, string> = { blue: 'Blue Morpho 🦋', yellow: 'Yellow Swallowtail 🌼', purple: 'Purple Emperor 💜', golden: 'Golden Wing ✨' };
+    setSave({
+      ...save,
+      tokens: { ...save.tokens, spent: save.tokens.spent + 1 },
+      treehouse: { ...save.treehouse, butterflies: caught ? [...save.treehouse.butterflies, caught] : save.treehouse.butterflies },
+    });
+    if (caught) {
+      addLog(makeEntry('🦋', `You caught a ${names[caught]}! Added to your collection.`, 'event'));
+    } else {
+      addLog(makeEntry('🌿', 'You looked around but didn\'t catch anything this time. Try again tomorrow!', 'neutral'));
+    }
+  }
+
   function handlePickNextGoal(goalId: string) {
     if (!save) return;
     const goal = NEXT_GOALS.find(g => g.id === goalId);
@@ -154,10 +249,17 @@ export default function Home() {
       ...save.worldUnlocks,
       ...(completedUnlock ? { [completedUnlock]: true } : {}),
     };
+    // Initialize the newly unlocked feature if not already present
+    const gardenInit = completedUnlock === 'garden' && !save.garden ? initGarden() : save.garden;
+    const treeInit = completedUnlock === 'treehouse' && !save.treehouse
+      ? { visited: false, questGiven: false, butterflies: [], decorations: [] }
+      : save.treehouse;
 
     setSave({
       ...save,
       worldUnlocks: newWorldUnlocks,
+      garden: gardenInit,
+      treehouse: treeInit,
       dreamGoal: {
         id: goal.id,
         name: goal.name,
@@ -174,7 +276,9 @@ export default function Home() {
 
   function handleNextDay() {
     if (!save) return;
-    const updated = advanceDay(save);
+    let updated = advanceDay(save);
+    updated = advanceGardenDay(updated);
+    updated = advancePetDay(updated);
     setSave(updated);
     const weatherEmojis: Record<string, string> = { sunny: '☀️', cloudy: '⛅', rainy: '🌧️', stormy: '⛈️' };
     const demandNote = weatherDemandMultiplier(updated.weather) < 1 ? ' Demand will be lower today.' : ' Great day for lemonade!';
@@ -186,6 +290,11 @@ export default function Home() {
     if (updated.lemonTree.planted && updated.lemonTree.daysOld >= updated.lemonTree.matureAt && save.lemonTree.daysOld < save.lemonTree.matureAt) {
       addLog(makeEntry('🌳', 'Your lemon tree is ready to harvest!', 'event'));
     }
+    // Pet neglect warning
+    if (updated.pet && !save.pet?.fed && !save.pet?.played) {
+      addLog(makeEntry('🐶', `${updated.pet.name} looks sad... Make sure to feed and play today!`, 'bad'));
+    }
+
     if (updated.dreamGoal.interestEarnedToday && updated.dreamGoal.interestEarnedToday > 0) {
       addLog(makeEntry('🐷', `Your piggy bank grew overnight! +$${updated.dreamGoal.interestEarnedToday.toFixed(2)} interest on your savings.`, 'good'));
     }
@@ -278,6 +387,9 @@ export default function Home() {
             { id: 'stand',    emoji: '🏪', label: 'Stand' },
             { id: 'tree',     emoji: '🌳', label: 'Tree' },
             { id: 'home',     emoji: '🏡', label: 'Home' },
+            ...(save.worldUnlocks?.garden    ? [{ id: 'garden' as const,    emoji: '🌱', label: 'Garden' }] : []),
+            ...(save.worldUnlocks?.pet       ? [{ id: 'pet' as const,       emoji: '🐶', label: save.pet?.name || 'Puppy' }] : []),
+            ...(save.worldUnlocks?.treehouse ? [{ id: 'treehouse' as const, emoji: '🏠', label: 'Treehouse' }] : []),
             { id: 'tortoise', emoji: '🐢', label: 'Tortoise' },
             { id: 'buzzybee', emoji: '🐝', label: 'Buzzy' },
             { id: 'wisefox',  emoji: '🦊', label: 'Fox' },
@@ -299,18 +411,40 @@ export default function Home() {
         {/* Active location content */}
         {activeLocation && (
           <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
-            <LocationPanel
-              location={activeLocation}
-              save={save}
-              onBuySupplies={handleBuySupplies}
-              onRunStand={handleRunStand}
-              onHireHelper={handleHireHelper}
-              onSetPrice={handleSetPrice}
-              onPlantTree={handlePlantTree}
-              onHarvestTree={handleHarvestTree}
-              onContribute={handleContribute}
-              onNextDay={handleNextDay}
-            />
+            {activeLocation === 'garden' ? (
+              <GardenPanel
+                save={save}
+                onPlant={handlePlantCrop}
+                onHarvest={handleHarvestPlot}
+                onSell={handleSellAtMarket}
+              />
+            ) : activeLocation === 'pet' ? (
+              <PetPanel
+                save={save}
+                onFeed={handleFeedPet}
+                onPlay={handlePlayWithPet}
+                onNamePet={handleNamePet}
+              />
+            ) : activeLocation === 'treehouse' ? (
+              <TreehousePanel
+                save={save}
+                onVisit={handleVisitTreehouse}
+                onCatch={handleCatchButterfly}
+              />
+            ) : (
+              <LocationPanel
+                location={activeLocation}
+                save={save}
+                onBuySupplies={handleBuySupplies}
+                onRunStand={handleRunStand}
+                onHireHelper={handleHireHelper}
+                onSetPrice={handleSetPrice}
+                onPlantTree={handlePlantTree}
+                onHarvestTree={handleHarvestTree}
+                onContribute={handleContribute}
+                onNextDay={handleNextDay}
+              />
+            )}
           </div>
         )}
       </div>

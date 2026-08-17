@@ -1,7 +1,7 @@
 'use client';
 import type { PlayerSave } from '@/types/game';
 
-type Location = 'stand' | 'tree' | 'home' | 'tortoise' | 'buzzybee' | 'wisefox';
+type Location = 'stand' | 'tree' | 'home' | 'tortoise' | 'buzzybee' | 'wisefox' | 'garden' | 'pet' | 'treehouse';
 
 interface Props {
   save: PlayerSave;
@@ -41,12 +41,27 @@ export default function WorldMap({ save, activeLocation, onSelectLocation, weath
     { id: 'tortoise',  emoji: '🐢', label: 'Old Tortoise', x: 14, y: 22 },
     { id: 'home',      emoji: '🏡', label: 'Your Home',    x: 50, y: 14 },
     { id: 'wisefox',   emoji: '🦊', label: 'Wise Fox',     x: 78, y: 24 },
-    // Row 2 — bottom (pulled in from edges so nothing clips)
+    // Row 2 — bottom
     { id: 'tree',      emoji: treeEmoji, label: 'Lemon Tree', x: 20, y: 65,
       badge: save.lemonTree.planted && save.lemonTree.daysOld >= save.lemonTree.matureAt ? '!' : undefined },
     { id: 'stand',     emoji: '🏪', label: 'Your Stand',   x: 52, y: 68,
       badge: save.lemonadeStand.supplyCount === 0 ? '!' : undefined },
     { id: 'buzzybee',  emoji: '🐝', label: 'Buzzy Bee',    x: 80, y: 62 },
+    // Unlockable locations
+    ...(save.worldUnlocks?.garden ? [{
+      id: 'garden' as Location, emoji: '🌱', label: 'Garden',
+      x: 8, y: 50,
+      badge: save.garden?.plots.some(p => !p.harvested && !p.damaged && (save.dayNumber - p.plantedDay) >= p.matureAt) ? '!' : undefined,
+    }] : []),
+    ...(save.worldUnlocks?.pet ? [{
+      id: 'pet' as Location, emoji: '🐶', label: save.pet?.name || 'Puppy',
+      x: 50, y: 42,
+      badge: save.pet && (!save.pet.fed || !save.pet.played) ? '!' : undefined,
+    }] : []),
+    ...(save.worldUnlocks?.treehouse ? [{
+      id: 'treehouse' as Location, emoji: '🏠', label: 'Treehouse',
+      x: 88, y: 38,
+    }] : []),
   ];
 
   return (

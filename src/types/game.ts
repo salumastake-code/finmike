@@ -36,6 +36,42 @@ export interface WorldUnlocks {
   treehouse: boolean;
 }
 
+// ---- Garden ----
+export type CropId = 'strawberry' | 'tomato' | 'herb';
+
+export interface CropPlot {
+  id: string;            // unique plot id
+  cropId: CropId;
+  plantedDay: number;    // day number when planted
+  matureAt: number;      // days until ready (from plantedDay)
+  harvested: boolean;
+  damaged: boolean;      // storm damage
+}
+
+export interface Garden {
+  plots: CropPlot[];     // up to 4 plots
+  totalHarvested: number;
+  marketInventory: Record<CropId, number>; // harvested crops ready to sell
+}
+
+// ---- Pet ----
+export interface Pet {
+  name: string;
+  emoji: '🐶';
+  fed: boolean;          // fed today?
+  played: boolean;       // played today?
+  happiness: number;     // 0–100
+  daysNeglected: number;
+}
+
+// ---- Treehouse ----
+export interface Treehouse {
+  visited: boolean;      // ever visited?
+  questGiven: boolean;   // grandpa quest given?
+  butterflies: string[]; // collected butterfly ids
+  decorations: string[];
+}
+
 // ---- Lemonade Stand ----
 export interface LemonadeStand {
   owned: boolean;
@@ -132,6 +168,11 @@ export interface PlayerSave {
   // Businesses / assets
   lemonadeStand: LemonadeStand;
   lemonTree: LemonTree;
+
+  // Unlockable world features
+  garden?: Garden;
+  pet?: Pet;
+  treehouse?: Treehouse;
 
   // Characters
   neighbors: Neighbor[];
