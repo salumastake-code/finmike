@@ -8,11 +8,12 @@ interface Props {
   save: PlayerSave;
   onClose: () => void;
   onLoad: (save: PlayerSave) => void;
+  onReset: () => void;
 }
 
-type Tab = 'save' | 'load';
+type Tab = 'save' | 'load' | 'settings';
 
-export default function WorldCodeModal({ save, onClose, onLoad }: Props) {
+export default function WorldCodeModal({ save, onClose, onLoad, onReset }: Props) {
   const [tab, setTab] = useState<Tab>('save');
   const [copied, setCopied] = useState(false);
   const [inputCode, setInputCode] = useState('');
@@ -65,13 +66,19 @@ export default function WorldCodeModal({ save, onClose, onLoad }: Props) {
             onClick={() => setTab('save')}
             className={`flex-1 py-2 rounded-xl text-sm font-bold transition-colors ${tab === 'save' ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-500'}`}
           >
-            📤 Save My World
+            📤 Save
           </button>
           <button
             onClick={() => setTab('load')}
             className={`flex-1 py-2 rounded-xl text-sm font-bold transition-colors ${tab === 'load' ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-500'}`}
           >
-            📥 Load a World
+            📥 Load
+          </button>
+          <button
+            onClick={() => setTab('settings')}
+            className={`flex-1 py-2 rounded-xl text-sm font-bold transition-colors ${tab === 'settings' ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-500'}`}
+          >
+            ⚙️ More
           </button>
         </div>
 
@@ -148,6 +155,33 @@ export default function WorldCodeModal({ save, onClose, onLoad }: Props) {
             <p className="text-xs text-center text-gray-400">
               ⚠️ This will replace your current save on this device.
             </p>
+          </div>
+        )}
+
+        {tab === 'settings' && (
+          <div className="space-y-4">
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm text-gray-600 space-y-1">
+              <div className="font-bold text-gray-700">{save.playerName}'s World</div>
+              <div>Day {save.dayNumber} · {save.coins} coins · {save.stage} stage</div>
+            </div>
+
+            <div className="border-t border-gray-100 pt-4">
+              <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Danger Zone</div>
+              <button
+                onClick={() => {
+                  if (confirm('Start over? This will erase all your progress.')) {
+                    onReset();
+                    onClose();
+                  }
+                }}
+                className="w-full py-3 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-bold rounded-xl text-sm transition-colors"
+              >
+                🗑️ Reset World — Start Over
+              </button>
+              <p className="text-xs text-center text-gray-400 mt-2">
+                Save your World Code first if you want to come back to this save.
+              </p>
+            </div>
           </div>
         )}
       </div>

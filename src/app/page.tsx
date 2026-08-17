@@ -188,6 +188,7 @@ export default function Home() {
           save={save}
           onClose={() => setShowWorldCode(false)}
           onLoad={(loaded) => { setSave(loaded); writeSave(loaded); setLog([]); }}
+          onReset={() => { localStorage.clear(); setSave(null); setLog([]); }}
         />
       )}
 
@@ -274,15 +275,7 @@ export default function Home() {
         <EventLog entries={log} />
       </div>
 
-      {/* Reset */}
-      <div className="text-center pb-10">
-        <button
-          onClick={() => { if (confirm('Start over?')) { localStorage.clear(); setSave(null); setLog([]); } }}
-          className="text-xs text-gray-200 hover:text-gray-400 transition-colors"
-        >
-          reset world
-        </button>
-      </div>
+      <div className="pb-10" />
     </main>
   );
 }
