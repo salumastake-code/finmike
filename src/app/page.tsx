@@ -155,6 +155,12 @@ export default function Home() {
     if (updated.lemonTree.planted && updated.lemonTree.daysOld >= updated.lemonTree.matureAt && save.lemonTree.daysOld < save.lemonTree.matureAt) {
       addLog(makeEntry('🌳', 'Your lemon tree is ready to harvest!', 'event'));
     }
+    if (updated.dreamGoal.interestEarnedToday && updated.dreamGoal.interestEarnedToday > 0) {
+      addLog(makeEntry('🐷', `Your piggy bank grew overnight! +$${updated.dreamGoal.interestEarnedToday.toFixed(2)} interest on your savings.`, 'good'));
+    }
+    if (updated.dreamGoal.unlocked && !save.dreamGoal.unlocked) {
+      addLog(makeEntry('🎉', `Your savings reached the goal overnight — ${updated.dreamGoal.name} is yours!`, 'event'));
+    }
     // Nudge player toward home after ending day
     setActiveLocation('stand');
   }

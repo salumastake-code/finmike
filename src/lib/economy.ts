@@ -181,6 +181,7 @@ export function advanceDay(save: PlayerSave): PlayerSave {
   const updated = { ...save };
   updated.lemonTree = { ...save.lemonTree };
   updated.tokens = { ...save.tokens };
+  updated.dreamGoal = { ...save.dreamGoal };
 
   updated.dayNumber += 1;
   updated.tokens.spent = 0; // reset tokens
@@ -188,6 +189,21 @@ export function advanceDay(save: PlayerSave): PlayerSave {
   // Grow tree
   if (save.lemonTree.planted) {
     updated.lemonTree.daysOld = save.lemonTree.daysOld + 1;
+  }
+
+  // 1% daily interest on dream goal savings (compound, rounded to nearest cent)
+  if (save.dreamGoal.saved > 0 && !save.dreamGoal.unlocked) {
+    const interest = Math.round(save.dreamGoal.saved * 0.01 * 100) / 100;
+    updated.dreamGoal.saved = Math.min(
+      save.dreamGoal.cost,
+      Math.round((save.dreamGoal.saved + interest) * 100) / 100
+    );
+    updated.dreamGoal.interestEarnedToday = interest;
+    if (updated.dreamGoal.saved >= save.dreamGoal.cost) {
+      updated.dreamGoal.unlocked = true;
+    }
+  } else {
+    updated.dreamGoal.interestEarnedToday = 0;
   }
 
   // Random weather

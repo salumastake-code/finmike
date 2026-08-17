@@ -25,6 +25,7 @@ export interface DreamGoal {
   cost: number;
   saved: number;         // how much contributed so far
   unlocked: boolean;
+  interestEarnedToday?: number; // 1% daily interest on saved amount
 }
 
 // ---- Lemonade Stand ----
