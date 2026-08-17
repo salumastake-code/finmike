@@ -10,7 +10,7 @@ import {
   contributeToDream, advanceDay,
   weatherDemandMultiplier,
 } from '@/lib/economy';
-import { plantCrop, harvestPlot, sellAtMarket, initGarden, advanceGardenDay } from '@/lib/garden';
+import { plantCrop, harvestPlot, sellAtMarket, initGarden, advanceGardenDay, CROPS } from '@/lib/garden';
 import { feedPet, playWithPet, initPet, advancePetDay } from '@/lib/pet';
 import type { CropId } from '@/types/game';
 
@@ -155,7 +155,6 @@ export default function Home() {
     const result = plantCrop(save, cropId);
     if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
     setSave(result);
-    const { CROPS } = require('@/lib/garden');
     addLog(makeEntry(CROPS[cropId].emoji, `Planted ${CROPS[cropId].name}! Grows in ${CROPS[cropId].growDays} day(s).`, 'good'));
   }
 
@@ -172,7 +171,6 @@ export default function Home() {
     const result = sellAtMarket(save, cropId);
     if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
     const prev = save.garden?.marketInventory[cropId] ?? 0;
-    const { CROPS } = require('@/lib/garden');
     const earned = prev * CROPS[cropId].sellPrice;
     setSave(result);
     addLog(makeEntry('💵', `Sold ${prev}x ${CROPS[cropId].name} for $${earned}!`, 'good'));
