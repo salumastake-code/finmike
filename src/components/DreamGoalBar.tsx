@@ -25,7 +25,10 @@ export default function DreamGoalBar({ goal, onContribute, dollars }: Props) {
               style={{ width: `${pct}%` }}
             />
           </div>
-          <div className="text-right text-xs text-amber-600 mt-0.5">{pct}%</div>
+          <div className="flex justify-between items-center mt-0.5">
+            <span className="text-xs text-amber-400">🐷 +1% interest nightly</span>
+            <span className="text-xs text-amber-600">{pct}%</span>
+          </div>
         </div>
       </div>
       {goal.unlocked ? (

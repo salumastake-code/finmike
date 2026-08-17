@@ -157,10 +157,11 @@ export default function LocationPanel({
             <div className="text-xs text-amber-600">{save.dreamGoal.saved} / {save.dreamGoal.cost} 💵 saved</div>
           </div>
         </div>
-        <div className="w-full bg-amber-100 rounded-full h-3 mb-2">
+        <div className="w-full bg-amber-100 rounded-full h-3 mb-1">
           <div className="bg-amber-400 h-3 rounded-full transition-all"
             style={{ width: `${Math.min(100,(save.dreamGoal.saved/save.dreamGoal.cost)*100)}%` }} />
         </div>
+        <div className="text-xs text-amber-500 mb-2">🐷 Earns 1% interest every night</div>
         {!save.dreamGoal.unlocked && (
           <div className="flex gap-2">
             {[5, 10, 25].map(amt => (

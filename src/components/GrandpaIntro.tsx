@@ -46,7 +46,13 @@ const STEPS: Step[] = [
   {
     speaker: 'Grandpa',
     emoji: '👴',
-    text: "That's all you need! Go on now — tap Your Stand and make your first sale. I'll be right next door. 😄",
+    text: "Oh — one more secret. Every night while you sleep, your piggy bank grows all on its own. The more you save, the more it grows. Like magic! 🐷",
+    highlight: 'home',
+  },
+  {
+    speaker: 'Grandpa',
+    emoji: '👴',
+    text: "Alright, that's all you need! Go on now — tap Your Stand and make your first sale. I'll be right next door. 😄",
     highlight: 'map',
   },
 ];
