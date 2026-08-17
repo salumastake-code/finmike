@@ -78,7 +78,7 @@ export default function Home() {
     if (result.cupsServed === 0) {
       addLog(makeEntry('😔', `No cups sold today.${weatherNote}`, 'bad'));
     } else {
-      addLog(makeEntry('🥤', `Sold ${result.cupsServed} cups → +${result.revenue} dollars. Profit: +${result.profit}${weatherNote}`, 'good'));
+      addLog(makeEntry('🥤', `Sold ${result.cupsServed} cups → +${result.revenue} dollars!${weatherNote}`, 'good'));
     }
     if (result.limitingFactor === 'supplies') {
       addLog(makeEntry('⚠️', 'Ran out of lemons before all customers were served!', 'neutral'));
