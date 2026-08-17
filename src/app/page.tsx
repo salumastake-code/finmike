@@ -13,6 +13,7 @@ import {
 
 import Onboarding from '@/components/Onboarding';
 import GrandpaIntro from '@/components/GrandpaIntro';
+import DreamCelebration, { NEXT_GOALS } from '@/components/DreamCelebration';
 import WorldMap from '@/components/WorldMap';
 import LocationPanel from '@/components/LocationPanel';
 import TokenBar from '@/components/TokenBar';
@@ -33,6 +34,7 @@ export default function Home() {
   const [ready, setReady] = useState(false);
   const [showIntro, setShowIntro] = useState(false);
   const [showWorldCode, setShowWorldCode] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
   const [activeLocation, setActiveLocation] = useState<Location | null>('stand');
 
   useEffect(() => {
@@ -120,7 +122,7 @@ export default function Home() {
     setSave(result);
     const pct = Math.round((result.dreamGoal.saved / result.dreamGoal.cost) * 100);
     if (result.dreamGoal.unlocked) {
-      addLog(makeEntry('🎉', `YOU DID IT! Dream Goal reached: ${result.dreamGoal.name}!`, 'event'));
+      setShowCelebration(true);
     } else {
       addLog(makeEntry('⭐', `Saved ${amount} dollars toward your ${result.dreamGoal.name}! (${pct}% there)`, 'good'));
     }
@@ -141,6 +143,35 @@ export default function Home() {
     addLog(makeEntry('🏷️', `Price set to ${price} 💵/cup. ${note}`, 'neutral'));
   }
 
+  function handlePickNextGoal(goalId: string) {
+    if (!save) return;
+    const goal = NEXT_GOALS.find(g => g.id === goalId);
+    if (!goal) return;
+
+    // Apply world unlock for the completed goal
+    const completedUnlock = save.dreamGoal.unlocks;
+    const newWorldUnlocks = {
+      ...save.worldUnlocks,
+      ...(completedUnlock ? { [completedUnlock]: true } : {}),
+    };
+
+    setSave({
+      ...save,
+      worldUnlocks: newWorldUnlocks,
+      dreamGoal: {
+        id: goal.id,
+        name: goal.name,
+        emoji: goal.emoji,
+        cost: goal.cost,
+        unlocks: goal.unlocks,
+        saved: 0,
+        unlocked: false,
+      },
+    });
+    setShowCelebration(false);
+    addLog(makeEntry('✨', `New dream: ${goal.name}! ${goal.unlocksDesc}`, 'event'));
+  }
+
   function handleNextDay() {
     if (!save) return;
     const updated = advanceDay(save);
@@ -159,7 +190,7 @@ export default function Home() {
       addLog(makeEntry('🐷', `Your piggy bank grew overnight! +$${updated.dreamGoal.interestEarnedToday.toFixed(2)} interest on your savings.`, 'good'));
     }
     if (updated.dreamGoal.unlocked && !save.dreamGoal.unlocked) {
-      addLog(makeEntry('🎉', `Your savings reached the goal overnight — ${updated.dreamGoal.name} is yours!`, 'event'));
+      setShowCelebration(true);
     }
     // Nudge player toward home after ending day
     setActiveLocation('stand');
@@ -179,6 +210,14 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gray-50">
+
+      {/* Dream reached celebration */}
+      {showCelebration && save && (
+        <DreamCelebration
+          completedGoal={save.dreamGoal}
+          onPickNext={handlePickNextGoal}
+        />
+      )}
 
       {/* Grandpa intro overlay */}
       {showIntro && (

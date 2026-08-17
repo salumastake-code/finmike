@@ -5,9 +5,9 @@ import type { PlayerSave } from '@/types/game';
 // ============================================================
 
 export const DREAM_GOALS = [
-  { id: 'bicycle',   name: 'Red Bicycle', emoji: '🚲', cost: 80  },
-  { id: 'puppy',     name: 'Puppy',       emoji: '🐶', cost: 120 },
-  { id: 'treehouse', name: 'Treehouse',   emoji: '🌳', cost: 180 },
+  { id: 'garden',    name: 'Garden Plot', emoji: '🌱', cost: 60,  unlocks: 'garden',    unlocksDesc: 'Grow crops and sell them at the market!' },
+  { id: 'puppy',     name: 'Puppy',       emoji: '🐶', cost: 100, unlocks: 'pet',       unlocksDesc: 'A loyal friend who lives at your home.' },
+  { id: 'treehouse', name: 'Treehouse',   emoji: '🌳', cost: 160, unlocks: 'treehouse', unlocksDesc: 'A secret hangout spot with new quests.' },
 ];
 
 export const NEIGHBORS = [
@@ -114,9 +114,19 @@ export function createNewSave(playerName: string, age: number, dreamGoalId: stri
     },
 
     dreamGoal: {
-      ...goal,
+      id: goal.id,
+      name: goal.name,
+      emoji: goal.emoji,
+      cost: goal.cost,
+      unlocks: goal.unlocks,
       saved: 0,
       unlocked: false,
+    },
+
+    worldUnlocks: {
+      garden: false,
+      pet: false,
+      treehouse: false,
     },
 
     lemonadeStand: {

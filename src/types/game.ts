@@ -20,12 +20,20 @@ export interface LifeMeters {
 // ---- Dream Goal ----
 export interface DreamGoal {
   id: string;
-  name: string;          // "Red Bicycle", "Puppy", "Treehouse"
+  name: string;
   emoji: string;
   cost: number;
-  saved: number;         // how much contributed so far
+  saved: number;
   unlocked: boolean;
-  interestEarnedToday?: number; // 1% daily interest on saved amount
+  unlocks?: string;      // world feature this goal unlocks e.g. 'garden' | 'pet' | 'treehouse'
+  interestEarnedToday?: number;
+}
+
+// ---- World Unlocks ----
+export interface WorldUnlocks {
+  garden: boolean;
+  pet: boolean;
+  treehouse: boolean;
 }
 
 // ---- Lemonade Stand ----
@@ -130,6 +138,9 @@ export interface PlayerSave {
 
   // Quests
   quests: Quest[];
+
+  // World unlocks
+  worldUnlocks: WorldUnlocks;
 
   // Collections
   seedCollection: string[];

@@ -7,7 +7,12 @@ export function loadSave(): PlayerSave | null {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as PlayerSave;
+    const save = JSON.parse(raw) as PlayerSave;
+    // Migrate old saves missing worldUnlocks
+    if (!save.worldUnlocks) {
+      save.worldUnlocks = { garden: false, pet: false, treehouse: false };
+    }
+    return save;
   } catch {
     return null;
   }
