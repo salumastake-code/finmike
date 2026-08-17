@@ -25,7 +25,8 @@ const WEATHER_OVERLAY: Record<string, string> = {
 };
 
 export default function WorldMap({ save, activeLocation, onSelectLocation, weather }: Props) {
-  const treeStage = !save.lemonTree.planted ? '🟫' :
+  // Use text for unplanted tree — 🟫 renders as a brown box on iOS
+  const treeEmoji = !save.lemonTree.planted ? '🪵' :
     save.lemonTree.daysOld >= save.lemonTree.matureAt ? '🌳' : '🌱';
 
   const locations: Array<{
@@ -36,20 +37,20 @@ export default function WorldMap({ save, activeLocation, onSelectLocation, weath
     y: number; // % from top
     badge?: string;
   }> = [
-    // Row 1 — top
-    { id: 'tortoise',  emoji: '🐢', label: 'Old Tortoise', x: 12, y: 18 },
-    { id: 'home',      emoji: '🏡', label: 'Your Home',    x: 50, y: 10 },
-    { id: 'wisefox',   emoji: '🦊', label: 'Wise Fox',     x: 80, y: 20 },
-    // Row 2 — middle
-    { id: 'tree',      emoji: treeStage, label: 'Lemon Tree', x: 22, y: 55,
+    // Row 1 — top (spread wider, pushed down so they're not cut off)
+    { id: 'tortoise',  emoji: '🐢', label: 'Old Tortoise', x: 14, y: 22 },
+    { id: 'home',      emoji: '🏡', label: 'Your Home',    x: 50, y: 14 },
+    { id: 'wisefox',   emoji: '🦊', label: 'Wise Fox',     x: 78, y: 24 },
+    // Row 2 — bottom (pulled in from edges so nothing clips)
+    { id: 'tree',      emoji: treeEmoji, label: 'Lemon Tree', x: 20, y: 65,
       badge: save.lemonTree.planted && save.lemonTree.daysOld >= save.lemonTree.matureAt ? '!' : undefined },
-    { id: 'stand',     emoji: '🏪', label: 'Your Stand',   x: 62, y: 52,
+    { id: 'stand',     emoji: '🏪', label: 'Your Stand',   x: 52, y: 68,
       badge: save.lemonadeStand.supplyCount === 0 ? '!' : undefined },
-    { id: 'buzzybee',  emoji: '🐝', label: 'Buzzy Bee',    x: 88, y: 58 },
+    { id: 'buzzybee',  emoji: '🐝', label: 'Buzzy Bee',    x: 80, y: 62 },
   ];
 
   return (
-    <div className={`relative w-full h-52 bg-gradient-to-b ${WEATHER_BG[weather] || WEATHER_BG.sunny} overflow-hidden rounded-b-none`}>
+    <div className={`relative w-full h-56 bg-gradient-to-b ${WEATHER_BG[weather] || WEATHER_BG.sunny} overflow-hidden`}>
 
       {/* Animated weather overlay */}
       {weather !== 'sunny' && (
@@ -63,15 +64,17 @@ export default function WorldMap({ save, activeLocation, onSelectLocation, weath
       )}
 
       {/* Path lines between locations (decorative) */}
-      <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.25 }}>
-        {/* Home → Stand */}
-        <line x1="50%" y1="22%" x2="62%" y2="52%" stroke="white" strokeWidth="2" strokeDasharray="4 3" />
-        {/* Home → Tree */}
-        <line x1="50%" y1="22%" x2="22%" y2="55%" stroke="white" strokeWidth="2" strokeDasharray="4 3" />
-        {/* Stand → Buzzybee */}
-        <line x1="62%" y1="52%" x2="88%" y2="58%" stroke="white" strokeWidth="2" strokeDasharray="4 3" />
+      <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ opacity: 0.3 }}>
         {/* Tortoise → Home */}
-        <line x1="12%" y1="28%" x2="50%" y2="22%" stroke="white" strokeWidth="2" strokeDasharray="4 3" />
+        <line x1="14%" y1="22%" x2="50%" y2="14%" stroke="white" strokeWidth="2" strokeDasharray="4 3" />
+        {/* Home → Wise Fox */}
+        <line x1="50%" y1="14%" x2="78%" y2="24%" stroke="white" strokeWidth="2" strokeDasharray="4 3" />
+        {/* Home → Stand */}
+        <line x1="50%" y1="14%" x2="52%" y2="68%" stroke="white" strokeWidth="2" strokeDasharray="4 3" />
+        {/* Tree → Stand */}
+        <line x1="20%" y1="65%" x2="52%" y2="68%" stroke="white" strokeWidth="2" strokeDasharray="4 3" />
+        {/* Stand → Buzzybee */}
+        <line x1="52%" y1="68%" x2="80%" y2="62%" stroke="white" strokeWidth="2" strokeDasharray="4 3" />
       </svg>
 
       {/* Location tiles */}
@@ -101,10 +104,10 @@ export default function WorldMap({ save, activeLocation, onSelectLocation, weath
           </div>
 
           {/* Label */}
-          <div className={`mt-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full transition-colors ${
+          <div className={`mt-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full transition-colors whitespace-nowrap ${
             activeLocation === loc.id
-              ? 'bg-white text-gray-800 shadow'
-              : 'bg-black/20 text-white'
+              ? 'bg-white/90 text-gray-800 shadow ring-2 ring-white'
+              : 'bg-black/25 text-white'
           }`}>
             {loc.label}
           </div>
