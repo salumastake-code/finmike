@@ -18,8 +18,8 @@ export const NEIGHBORS = [
     archetype: 'saver' as const,
     questActive: false,
     dialogue: [
-      { id: 'd1', trigger: 'greeting' as const, text: "Slow and steady, little one. Every coin saved is a coin working for you." },
-      { id: 'd2', trigger: 'tip' as const,      text: "Keep some coins back. You'll need them when it rains." },
+      { id: 'd1', trigger: 'greeting' as const, text: "Slow and steady, little one. Every dollar saved is a dollar working for you." },
+      { id: 'd2', trigger: 'tip' as const,      text: "Keep some dollars back. You'll need them when it rains." },
       { id: 'd3', trigger: 'weather' as const,  text: "Rain coming. Glad I saved up for that umbrella last season." },
     ],
   },
@@ -32,7 +32,7 @@ export const NEIGHBORS = [
     dialogue: [
       { id: 'd4', trigger: 'greeting' as const,      text: "I just opened my third honey stand this morning! The busier the better!" },
       { id: 'd5', trigger: 'quest_offer' as const,   text: "My bakery needs strawberries by tomorrow. Grow or buy them — your call, but there's a reward in it!" },
-      { id: 'd6', trigger: 'quest_complete' as const, text: "You came through! That's what I like — reliability. Here's your coins." },
+      { id: 'd6', trigger: 'quest_complete' as const, text: "You came through! That's what I like — reliability. Here's your dollars." },
     ],
   },
   {
@@ -63,7 +63,7 @@ export const INITIAL_QUESTS = [
   {
     id: 'q2',
     title: "Tortoise's Advice",
-    description: 'Save up 50 coins without spending any.',
+    description: 'Save up 50 dollars without spending any.',
     givenBy: 'oldtortoise',
     reward: { coins: 10, badges: ['first_saver'] },
     completed: false,
@@ -95,7 +95,7 @@ export function createNewSave(playerName: string, age: number, dreamGoalId: stri
     age,
     stage: 'grow',
 
-    coins: 20,        // starting coins — enough to buy first supply batch
+    coins: 20,        // starting dollars — enough to buy first supply batch
     totalEarned: 0,
     totalSpent: 0,
 

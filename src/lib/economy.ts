@@ -100,7 +100,7 @@ export function buySupplies(save: PlayerSave): PlayerSave | { error: string } {
     return { error: 'Not enough activity tokens to go shopping.' };
   }
   if (save.coins < SUPPLY_COST) {
-    return { error: `You need ${SUPPLY_COST} coins to buy supplies. You have ${save.coins}.` };
+    return { error: `You need ${SUPPLY_COST} dollars to buy supplies. You have ${save.coins}.` };
   }
 
   const updated = { ...save };
@@ -118,7 +118,7 @@ export function buySupplies(save: PlayerSave): PlayerSave | { error: string } {
 // ---- Plant lemon tree ----
 export function plantLemonTree(save: PlayerSave): PlayerSave | { error: string } {
   if (save.lemonTree.planted) return { error: 'Your lemon tree is already growing!' };
-  if (save.coins < 15) return { error: 'Planting a tree costs 15 coins.' };
+  if (save.coins < 15) return { error: 'Planting a tree costs 15 dollars.' };
   if (save.tokens.spent + TOKEN_COST_TEND_TREE > save.tokens.total) {
     return { error: 'Not enough activity tokens to plant today.' };
   }
@@ -156,7 +156,7 @@ export function harvestLemonTree(save: PlayerSave): PlayerSave | { error: string
 // ---- Contribute to dream goal ----
 export function contributeToDream(save: PlayerSave, amount: number): PlayerSave | { error: string } {
   if (amount <= 0) return { error: 'Amount must be positive.' };
-  if (save.coins < amount) return { error: `You only have ${save.coins} coins.` };
+  if (save.coins < amount) return { error: `You only have ${save.coins} dollars.` };
   if (save.dreamGoal.unlocked) return { error: 'Dream already reached!' };
 
   const updated = { ...save };

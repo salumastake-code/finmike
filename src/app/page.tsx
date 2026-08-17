@@ -61,7 +61,7 @@ export default function Home() {
     const result = buySupplies(save);
     if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
     setSave(result);
-    addLog(makeEntry('🍋', 'Bought 10 lemons for 5 coins. Ready to sell!', 'good'));
+    addLog(makeEntry('🍋', 'Bought 10 lemons for 5 dollars. Ready to sell!', 'good'));
   }
 
   function handleRunStand() {
@@ -78,7 +78,7 @@ export default function Home() {
     if (result.cupsServed === 0) {
       addLog(makeEntry('😔', `No cups sold today.${weatherNote}`, 'bad'));
     } else {
-      addLog(makeEntry('🥤', `Sold ${result.cupsServed} cups → +${result.revenue} coins. Profit: +${result.profit}${weatherNote}`, 'good'));
+      addLog(makeEntry('🥤', `Sold ${result.cupsServed} cups → +${result.revenue} dollars. Profit: +${result.profit}${weatherNote}`, 'good'));
     }
     if (result.limitingFactor === 'supplies') {
       addLog(makeEntry('⚠️', 'Ran out of lemons before all customers were served!', 'neutral'));
@@ -88,7 +88,7 @@ export default function Home() {
       if (!prev) return prev;
       const q1 = prev.quests.find(q => q.id === 'q1');
       if (!q1 || q1.completed || result.cupsServed < 1) return prev;
-      setTimeout(() => addLog(makeEntry('🎉', 'Quest complete: First Sale! +5 coins bonus!', 'event')), 0);
+      setTimeout(() => addLog(makeEntry('🎉', 'Quest complete: First Sale! +5 dollars bonus!', 'event')), 0);
       return {
         ...prev,
         coins: prev.coins + 5,
@@ -122,14 +122,14 @@ export default function Home() {
     if (result.dreamGoal.unlocked) {
       addLog(makeEntry('🎉', `YOU DID IT! Dream Goal reached: ${result.dreamGoal.name}!`, 'event'));
     } else {
-      addLog(makeEntry('⭐', `Saved ${amount} coins toward your ${result.dreamGoal.name}! (${pct}% there)`, 'good'));
+      addLog(makeEntry('⭐', `Saved ${amount} dollars toward your ${result.dreamGoal.name}! (${pct}% there)`, 'good'));
     }
   }
 
   function handleHireHelper() {
     if (!save) return;
     if (save.lemonadeStand.hasHelper) return;
-    if (save.coins < 10) { addLog(makeEntry('❌', 'You need 10 coins to hire a helper.', 'bad')); return; }
+    if (save.coins < 10) { addLog(makeEntry('❌', 'You need 10 dollars to hire a helper.', 'bad')); return; }
     setSave({ ...save, coins: save.coins - 10, totalSpent: save.totalSpent + 10, lemonadeStand: { ...save.lemonadeStand, hasHelper: true } });
     addLog(makeEntry('👦', 'Hired a helper! They\'ll run the stand — you keep your tokens.', 'good'));
   }
@@ -138,7 +138,7 @@ export default function Home() {
     if (!save) return;
     setSave({ ...save, lemonadeStand: { ...save.lemonadeStand, pricePerCup: price } });
     const note = price === 1 ? 'More customers, less per cup.' : price >= 4 ? 'Big profit per cup, fewer buyers.' : 'Good balance.';
-    addLog(makeEntry('🏷️', `Price set to ${price} 🪙/cup. ${note}`, 'neutral'));
+    addLog(makeEntry('🏷️', `Price set to ${price} 💵/cup. ${note}`, 'neutral'));
   }
 
   function handleNextDay() {
@@ -201,7 +201,7 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-1.5">
-            <span className="text-base">🪙</span>
+            <span className="text-base">💵</span>
             <span className="font-bold text-yellow-700">{save.coins}</span>
           </div>
           <span className="text-xs text-gray-400">{save.lemonadeStand.supplyCount}🍋</span>

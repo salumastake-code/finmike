@@ -162,7 +162,7 @@ export default function WorldCodeModal({ save, onClose, onLoad, onReset }: Props
           <div className="space-y-4">
             <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm text-gray-600 space-y-1">
               <div className="font-bold text-gray-700">{save.playerName}'s World</div>
-              <div>Day {save.dayNumber} · {save.coins} coins · {save.stage} stage</div>
+              <div>Day {save.dayNumber} · {save.coins} dollars · {save.stage} stage</div>
             </div>
 
             <div className="border-t border-gray-100 pt-4">

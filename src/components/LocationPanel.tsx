@@ -32,7 +32,7 @@ export default function LocationPanel({
         <span className="text-2xl">🏪</span>
         <div>
           <div className="font-bold text-gray-800">Lemonade Stand</div>
-          <div className="text-xs text-gray-400">{save.lemonadeStand.supplyCount} lemons in stock · earning {save.lemonadeStand.pricePerCup}🪙/cup</div>
+          <div className="text-xs text-gray-400">{save.lemonadeStand.supplyCount} lemons in stock · earning {save.lemonadeStand.pricePerCup}💵/cup</div>
         </div>
       </div>
 
@@ -40,7 +40,7 @@ export default function LocationPanel({
         disabled={save.coins < COSTS.SUPPLY_COST || tokensLeft < COSTS.TOKEN_COST_BUY_SUPPLIES}
         className="w-full flex items-center gap-3 p-3 bg-yellow-400 hover:bg-yellow-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-colors">
         <span className="text-xl">🍋</span>
-        <div className="flex-1 text-left text-sm">Buy Supplies<div className="text-xs opacity-80 font-normal">{COSTS.SUPPLY_COST} coins → {COSTS.LEMONS_PER_BATCH} lemons</div></div>
+        <div className="flex-1 text-left text-sm">Buy Supplies<div className="text-xs opacity-80 font-normal">{COSTS.SUPPLY_COST} dollars → {COSTS.LEMONS_PER_BATCH} lemons</div></div>
         <span className="text-xs bg-black/20 rounded-lg px-2 py-1">{COSTS.TOKEN_COST_BUY_SUPPLIES}⚡</span>
       </button>
 
@@ -48,7 +48,7 @@ export default function LocationPanel({
         disabled={save.lemonadeStand.supplyCount === 0 || (!save.lemonadeStand.hasHelper && tokensLeft < COSTS.TOKEN_COST_RUN_STAND)}
         className="w-full flex items-center gap-3 p-3 bg-orange-400 hover:bg-orange-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-colors">
         <span className="text-xl">🥤</span>
-        <div className="flex-1 text-left text-sm">Open the Stand<div className="text-xs opacity-80 font-normal">{save.lemonadeStand.hasHelper ? 'Helper runs it!' : `Sell at ${save.lemonadeStand.pricePerCup}🪙/cup`}</div></div>
+        <div className="flex-1 text-left text-sm">Open the Stand<div className="text-xs opacity-80 font-normal">{save.lemonadeStand.hasHelper ? 'Helper runs it!' : `Sell at ${save.lemonadeStand.pricePerCup}💵/cup`}</div></div>
         <span className="text-xs bg-black/20 rounded-lg px-2 py-1">{save.lemonadeStand.hasHelper ? 'FREE' : `${COSTS.TOKEN_COST_RUN_STAND}⚡`}</span>
       </button>
 
@@ -60,7 +60,7 @@ export default function LocationPanel({
             className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-30 font-bold text-lg">−</button>
           <div className="flex-1 text-center">
             <span className="text-2xl font-bold text-yellow-600">{save.lemonadeStand.pricePerCup}</span>
-            <span className="text-sm text-gray-400"> 🪙/cup</span>
+            <span className="text-sm text-gray-400"> 💵/cup</span>
           </div>
           <button onClick={() => onSetPrice(Math.min(5, save.lemonadeStand.pricePerCup + 1))} disabled={save.lemonadeStand.pricePerCup >= 5}
             className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-30 font-bold text-lg">+</button>
@@ -76,7 +76,7 @@ export default function LocationPanel({
           className="w-full flex items-center gap-3 p-3 rounded-xl border-2 border-dashed border-purple-300 hover:border-purple-400 hover:bg-purple-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
           <span className="text-xl">👦</span>
           <div className="flex-1 text-left text-sm font-bold text-purple-700">Hire a Helper<div className="text-xs font-normal text-purple-400">They run the stand, you save tokens</div></div>
-          <div className="text-xs bg-purple-100 text-purple-600 rounded-lg px-2 py-1 font-bold">10 🪙</div>
+          <div className="text-xs bg-purple-100 text-purple-600 rounded-lg px-2 py-1 font-bold">10 💵</div>
         </button>
       ) : (
         <div className="flex items-center gap-3 p-3 rounded-xl bg-purple-50 border border-purple-200">
@@ -106,7 +106,7 @@ export default function LocationPanel({
         <button onClick={onPlantTree} disabled={save.coins < 15 || tokensLeft < COSTS.TOKEN_COST_TEND_TREE}
           className="w-full flex items-center gap-3 p-3 bg-green-500 hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-colors">
           <span className="text-xl">🌱</span>
-          <div className="flex-1 text-left text-sm">Plant a Lemon Tree<div className="text-xs opacity-80 font-normal">15 coins · grows in 3 days · free lemons forever</div></div>
+          <div className="flex-1 text-left text-sm">Plant a Lemon Tree<div className="text-xs opacity-80 font-normal">15 dollars · grows in 3 days · free lemons forever</div></div>
           <span className="text-xs bg-black/20 rounded-lg px-2 py-1">{COSTS.TOKEN_COST_TEND_TREE}⚡</span>
         </button>
       )}
@@ -154,7 +154,7 @@ export default function LocationPanel({
           <span className="text-2xl">{save.dreamGoal.emoji}</span>
           <div className="flex-1">
             <div className="text-sm font-bold text-amber-900">{save.dreamGoal.name}</div>
-            <div className="text-xs text-amber-600">{save.dreamGoal.saved} / {save.dreamGoal.cost} 🪙 saved</div>
+            <div className="text-xs text-amber-600">{save.dreamGoal.saved} / {save.dreamGoal.cost} 💵 saved</div>
           </div>
         </div>
         <div className="w-full bg-amber-100 rounded-full h-3 mb-2">
@@ -166,7 +166,7 @@ export default function LocationPanel({
             {[5, 10, 25].map(amt => (
               <button key={amt} onClick={() => onContribute(amt)} disabled={save.coins < amt}
                 className="flex-1 text-xs bg-amber-400 hover:bg-amber-500 disabled:opacity-40 text-white font-bold py-1.5 rounded-xl">
-                Save {amt} 🪙
+                Save {amt} 💵
               </button>
             ))}
           </div>
@@ -186,16 +186,16 @@ export default function LocationPanel({
     tortoise: {
       name: 'Old Tortoise 🐢', emoji: '🐢',
       lines: [
-        "Every coin you save is a coin working for you.",
+        "Every dollar you save is a dollar working for you.",
         "I never spend money I don't have. That's kept me comfortable for years.",
-        "Rainy days happen. That's why I always keep some coins back.",
+        "Rainy days happen. That's why I always keep some dollars back.",
       ],
     },
     buzzybee: {
       name: 'Buzzy Bee 🐝', emoji: '🐝',
       lines: [
         "The busier the better! I run three stands and I love every minute.",
-        "If customers are slow, try lowering your price. More cups, more coins!",
+        "If customers are slow, try lowering your price. More cups, more dollars!",
         "Hiring a helper was the best thing I ever did. Freed up so much time!",
       ],
     },

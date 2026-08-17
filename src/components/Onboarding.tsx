@@ -64,7 +64,7 @@ export default function Onboarding({ onComplete, onLoadCode }: Props) {
             <div className="text-6xl mb-4">🌍</div>
             <h1 className="text-2xl font-bold text-green-700 mb-2">Grow Your World</h1>
             <p className="text-gray-600 mb-6 text-sm">
-              Build a life, earn coins, reach your dreams.<br />Your world, your choices.
+              Build a life, earn dollars, reach your dreams.<br />Your world, your choices.
             </p>
             <p className="text-gray-700 mb-3 font-medium">What's your name?</p>
             <input
@@ -125,7 +125,7 @@ export default function Onboarding({ onComplete, onLoadCode }: Props) {
             <div className="text-5xl mb-3">✨</div>
             <h2 className="text-xl font-bold text-green-700 mb-2">Pick your Dream Goal</h2>
             <p className="text-gray-500 text-sm mb-4">
-              You'll earn coins and save toward this. Pick what excites you most!
+              You'll earn dollars and save toward this. Pick what excites you most!
             </p>
             <div className="space-y-3 mb-6">
               {DREAM_GOALS.map((g) => (
@@ -141,7 +141,7 @@ export default function Onboarding({ onComplete, onLoadCode }: Props) {
                   <span className="text-4xl">{g.emoji}</span>
                   <div className="text-left">
                     <div className="font-bold text-gray-800">{g.name}</div>
-                    <div className="text-xs text-gray-500">Costs {g.cost} 🪙</div>
+                    <div className="text-xs text-gray-500">Costs {g.cost} 💵</div>
                   </div>
                   {goalId === g.id && <span className="ml-auto text-amber-500 text-xl">✓</span>}
                 </button>

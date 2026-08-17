@@ -25,7 +25,7 @@ export default function ActionPanel({ save, onBuySupplies, onRunStand, onPlantTr
       id: 'buy',
       label: 'Buy Supplies',
       emoji: '🍋',
-      desc: `${COSTS.SUPPLY_COST} coins → ${COSTS.LEMONS_PER_BATCH} lemons`,
+      desc: `${COSTS.SUPPLY_COST} dollars → ${COSTS.LEMONS_PER_BATCH} lemons`,
       cost: `${COSTS.TOKEN_COST_BUY_SUPPLIES}⚡`,
       disabled: save.coins < COSTS.SUPPLY_COST || tokensLeft < COSTS.TOKEN_COST_BUY_SUPPLIES,
       onClick: onBuySupplies,
@@ -37,7 +37,7 @@ export default function ActionPanel({ save, onBuySupplies, onRunStand, onPlantTr
       emoji: '🥤',
       desc: save.lemonadeStand.hasHelper
         ? 'Helper runs it for free!'
-        : `Sell at ${save.lemonadeStand.pricePerCup}🪙/cup`,
+        : `Sell at ${save.lemonadeStand.pricePerCup}💵/cup`,
       cost: save.lemonadeStand.hasHelper ? 'FREE' : `${COSTS.TOKEN_COST_RUN_STAND}⚡`,
       disabled: save.lemonadeStand.supplyCount === 0 || (!save.lemonadeStand.hasHelper && tokensLeft < COSTS.TOKEN_COST_RUN_STAND),
       onClick: onRunStand,
@@ -49,7 +49,7 @@ export default function ActionPanel({ save, onBuySupplies, onRunStand, onPlantTr
       emoji: '🌳',
       desc: save.lemonTree.planted
         ? treeReady ? `Get ${save.lemonTree.lemonYield} lemons!` : 'Almost ready…'
-        : '15 coins → free lemons forever',
+        : '15 dollars → free lemons forever',
       cost: `${COSTS.TOKEN_COST_TEND_TREE}⚡`,
       disabled: save.lemonTree.planted
         ? (!treeReady || tokensLeft < COSTS.TOKEN_COST_TEND_TREE)
@@ -91,9 +91,9 @@ export default function ActionPanel({ save, onBuySupplies, onRunStand, onPlantTr
           <span className="text-2xl">👦</span>
           <div className="flex-1 text-left">
             <div className="text-sm font-bold text-purple-700">Hire a Helper</div>
-            <div className="text-xs text-purple-400">10 coins — they run the stand, you save tokens</div>
+            <div className="text-xs text-purple-400">10 dollars — they run the stand, you save tokens</div>
           </div>
-          <div className="text-xs bg-purple-100 text-purple-600 rounded-lg px-2 py-1 font-bold">10 🪙</div>
+          <div className="text-xs bg-purple-100 text-purple-600 rounded-lg px-2 py-1 font-bold">10 💵</div>
         </button>
       )}
       {save.lemonadeStand.hasHelper && (
@@ -101,7 +101,7 @@ export default function ActionPanel({ save, onBuySupplies, onRunStand, onPlantTr
           <span className="text-2xl">👦</span>
           <div className="flex-1">
             <div className="text-sm font-bold text-purple-700">Helper is working!</div>
-            <div className="text-xs text-purple-400">Stand runs for free (pays {COSTS.HELPER_WAGE_PER_DAY} 🪙/session from revenue)</div>
+            <div className="text-xs text-purple-400">Stand runs for free (pays {COSTS.HELPER_WAGE_PER_DAY} 💵/session from revenue)</div>
           </div>
           <span className="text-green-500 text-lg">✅</span>
         </div>
@@ -118,7 +118,7 @@ export default function ActionPanel({ save, onBuySupplies, onRunStand, onPlantTr
           >−</button>
           <div className="flex-1 text-center">
             <span className="text-2xl font-bold text-yellow-600">{save.lemonadeStand.pricePerCup}</span>
-            <span className="text-sm text-gray-400"> 🪙/cup</span>
+            <span className="text-sm text-gray-400"> 💵/cup</span>
           </div>
           <button
             onClick={() => onSetPrice(Math.min(5, save.lemonadeStand.pricePerCup + 1))}

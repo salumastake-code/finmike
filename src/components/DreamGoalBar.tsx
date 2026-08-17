@@ -4,10 +4,10 @@ import type { DreamGoal } from '@/types/game';
 interface Props {
   goal: DreamGoal;
   onContribute: (amount: number) => void;
-  coins: number;
+  dollars: number;
 }
 
-export default function DreamGoalBar({ goal, onContribute, coins }: Props) {
+export default function DreamGoalBar({ goal, onContribute, dollars }: Props) {
   const pct = Math.min(100, Math.round((goal.saved / goal.cost) * 100));
 
   return (
@@ -17,7 +17,7 @@ export default function DreamGoalBar({ goal, onContribute, coins }: Props) {
         <div className="flex-1">
           <div className="flex justify-between items-center mb-1">
             <span className="font-bold text-amber-900 text-sm">Dream Goal: {goal.name}</span>
-            <span className="text-amber-700 text-xs font-mono">{goal.saved}/{goal.cost} 🪙</span>
+            <span className="text-amber-700 text-xs font-mono">{goal.saved}/{goal.cost} 💵</span>
           </div>
           <div className="w-full bg-amber-100 rounded-full h-4 border border-amber-200">
             <div
@@ -35,11 +35,11 @@ export default function DreamGoalBar({ goal, onContribute, coins }: Props) {
           {[5, 10, 25].map(amt => (
             <button
               key={amt}
-              disabled={coins < amt}
+              disabled={dollars < amt}
               onClick={() => onContribute(amt)}
               className="flex-1 text-xs bg-amber-400 hover:bg-amber-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-1.5 rounded-xl transition-colors"
             >
-              Save {amt} 🪙
+              Save {amt} 💵
             </button>
           ))}
         </div>
