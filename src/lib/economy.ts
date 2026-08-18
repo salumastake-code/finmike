@@ -8,13 +8,13 @@ import type { PlayerSave, Weather } from '@/types/game';
 const SUPPLY_COST = 5;        // cost per batch of 10 lemons
 const LEMONS_PER_BATCH = 10;
 const CUPS_PER_LEMON = 1;
-const HELPER_WAGE_PER_DAY = 10; // $10/helper/day, paid at start of day
+const HELPER_SHIFT_COST = 5;    // $5 to hire someone for one shift (no energy spent)
 const TOKEN_COST_RUN_STAND = 1;
 const TOKEN_COST_TEND_TREE = 1;
 const TOKEN_COST_LEARN = 2;
 const TOKEN_COST_EXPLORE = 1;
 const TOKEN_COST_BUY_SUPPLIES = 1;
-const TOKEN_COST_HIRE_HELPER = 1;
+const TOKEN_COST_HIRE_HELPER = 0; // hiring a helper costs no energy, just $5
 
 // Hours each activity advances the clock (day runs 7am → 9pm = 14hrs max)
 export const HOURS: Record<string, number> = {
@@ -83,20 +83,8 @@ export interface StandResult {
 
 export function runLemonadeStand(save: PlayerSave): StandResult | { error: string } {
   const { lemonadeStand, tokens, weather } = save;
-
   if (!lemonadeStand.owned) return { error: 'You don\'t have a lemonade stand yet.' };
-
-  const shiftsRunByHelpers = lemonadeStand.shiftsRunByHelpers ?? 0;
-  const helperCoversThis = shiftsRunByHelpers < lemonadeStand.helperCount;
-
-  // Need energy if no helper covering this shift
-  if (!helperCoversThis && tokens.spent + TOKEN_COST_RUN_STAND > tokens.total) {
-    return { error: 'Not enough energy left today.' };
-  }
-  // Helpers need to have been paid today
-  if (helperCoversThis && !lemonadeStand.helpersPaidToday) {
-    return { error: `You need to pay your helper${lemonadeStand.helperCount > 1 ? 's' : ''} first! ($${lemonadeStand.helperCount * 10} today)` };
-  }
+  if (tokens.spent + TOKEN_COST_RUN_STAND > tokens.total) return { error: 'Not enough energy left today.' };
   if (lemonadeStand.supplyCount === 0) return { error: 'You\'re out of lemons! Buy supplies first.' };
 
   const customers = simulateCustomers(weather, lemonadeStand.pricePerCup);
@@ -106,12 +94,8 @@ export function runLemonadeStand(save: PlayerSave): StandResult | { error: strin
     cupsServed === 0 ? null :
     maxCups < customers ? 'supplies' :
     customers < maxCups ? 'customers' : null;
-
   const revenue = cupsServed * lemonadeStand.pricePerCup;
-  const profit = revenue; // helper wage already paid upfront at start of day
-  const tokensUsed = helperCoversThis ? 0 : TOKEN_COST_RUN_STAND;
-
-  return { cupsServed, revenue, suppliesUsed: cupsServed, helperCost: 0, profit, tokensUsed, limitingFactor };
+  return { cupsServed, revenue, suppliesUsed: cupsServed, helperCost: 0, profit: revenue, tokensUsed: TOKEN_COST_RUN_STAND, limitingFactor };
 }
 
 // ---- Apply stand results to save ----
@@ -119,52 +103,42 @@ export function applyStandResult(save: PlayerSave, result: StandResult): PlayerS
   const updated = { ...save };
   updated.lemonadeStand = { ...save.lemonadeStand };
   updated.lifeMeters = { ...save.lifeMeters };
-
   updated.coins += result.profit;
   updated.totalEarned += result.revenue;
   updated.lemonadeStand.supplyCount -= result.suppliesUsed;
   updated.lemonadeStand.totalEarned += result.revenue;
-
-  if (result.tokensUsed > 0) {
-    updated.tokens = spendToken(save.tokens, 'run_stand') ?? save.tokens;
-  } else {
-    updated.lemonadeStand.shiftsRunByHelpers = (save.lemonadeStand.shiftsRunByHelpers ?? 0) + 1;
-    updated.tokens = { ...save.tokens };
-  }
-
+  updated.tokens = spendToken(save.tokens, 'run_stand') ?? save.tokens;
   updated.lifeMeters.happiness = Math.min(100, updated.lifeMeters.happiness + 2);
   return updated;
 }
 
-// ---- Pay helpers for the day (must be done before helper shifts run) ----
-export function payHelpers(save: PlayerSave): PlayerSave | { error: string } {
-  const { lemonadeStand } = save;
-  if (lemonadeStand.helperCount === 0) return { error: 'You don\'t have any helpers.' };
-  if (lemonadeStand.helpersPaidToday) return { error: 'Helpers already paid today.' };
-  const wage = lemonadeStand.helperCount * 10;
-  if (save.coins < wage) {
-    return { error: `You need $${wage} to pay your ${lemonadeStand.helperCount} helper${lemonadeStand.helperCount > 1 ? 's' : ''} today. You only have $${save.coins}.` };
-  }
-  return {
-    ...save,
-    coins: save.coins - wage,
-    totalSpent: save.totalSpent + wage,
-    lemonadeStand: { ...lemonadeStand, helpersPaidToday: true },
-  };
-}
+export interface HireShiftResult { save: PlayerSave; cupsServed: number; revenue: number; profit: number }
 
-// ---- Hire a helper ----
-export function hireHelper(save: PlayerSave): PlayerSave | { error: string } {
-  if (save.coins < 10) return { error: 'Hiring a helper costs $10.' };
-  const tokens = spendToken(save.tokens, 'hire_helper');
-  if (!tokens) return { error: 'Not enough energy to hire today.' };
-  return {
+// ---- Hire someone for one shift ($5, no energy cost) ----
+export function hireForShift(save: PlayerSave): HireShiftResult | { error: string } {
+  if (save.coins < HELPER_SHIFT_COST) return { error: `Hiring someone for a shift costs $${HELPER_SHIFT_COST}. You only have $${save.coins}.` };
+  if (save.lemonadeStand.supplyCount === 0) return { error: 'You\'re out of lemons! Buy supplies first.' };
+
+  const { weather, lemonadeStand } = save;
+  const customers = simulateCustomers(weather, lemonadeStand.pricePerCup);
+  const maxCups = lemonadeStand.supplyCount * CUPS_PER_LEMON;
+  const cupsServed = Math.min(customers, maxCups);
+  const revenue = cupsServed * lemonadeStand.pricePerCup;
+  const profit = Math.max(0, revenue - HELPER_SHIFT_COST);
+
+  const nextSave: PlayerSave = {
     ...save,
-    coins: save.coins - 10,
-    totalSpent: save.totalSpent + 10,
-    tokens,
-    lemonadeStand: { ...save.lemonadeStand, helperCount: save.lemonadeStand.helperCount + 1 },
+    coins: save.coins - HELPER_SHIFT_COST + revenue,
+    totalEarned: save.totalEarned + revenue,
+    totalSpent: save.totalSpent + HELPER_SHIFT_COST,
+    lemonadeStand: {
+      ...lemonadeStand,
+      supplyCount: lemonadeStand.supplyCount - cupsServed,
+      totalEarned: lemonadeStand.totalEarned + revenue,
+      helperShiftsToday: (lemonadeStand.helperShiftsToday ?? 0) + 1,
+    },
   };
+  return { save: nextSave, cupsServed, revenue, profit };
 }
 
 // ---- Buy supplies ----
@@ -287,17 +261,10 @@ export function contributeToDream(save: PlayerSave, amount: number): PlayerSave 
 export function advanceDay(save: PlayerSave): PlayerSave {
   const updated = { ...save };
   updated.dreamGoal = { ...save.dreamGoal };
-  const helperWage = save.lemonadeStand.helperCount * 10;
 
   updated.dayNumber += 1;
   updated.tokens = { ...save.tokens, spent: 0, hoursElapsed: 0 };
-
-  // Reset helpers + deduct daily wage automatically if they can afford it
-  updated.lemonadeStand = {
-    ...save.lemonadeStand,
-    shiftsRunByHelpers: 0,
-    helpersPaidToday: false,
-  };
+  updated.lemonadeStand = { ...save.lemonadeStand, helperShiftsToday: 0 };
 
   // Grow all lemon trees
   updated.lemonTrees = (save.lemonTrees ?? []).map(t => ({ ...t, daysOld: t.daysOld + 1 }));
@@ -327,13 +294,6 @@ export function advanceDay(save: PlayerSave): PlayerSave {
     futureSecurity: save.lifeMeters.futureSecurity,
   };
 
-  // Auto-deduct helper wages if player can afford — warn if not
-  if (save.lemonadeStand.helperCount > 0 && updated.coins >= helperWage) {
-    updated.coins -= helperWage;
-    updated.totalSpent += helperWage;
-    updated.lemonadeStand.helpersPaidToday = true;
-  }
-
   return updated;
 }
 
@@ -349,7 +309,7 @@ function randomWeather(): PlayerSave['weather'] {
 export const COSTS = {
   SUPPLY_COST,
   LEMONS_PER_BATCH,
-  HELPER_WAGE_PER_DAY: 10, // per helper per day
+  HELPER_SHIFT_COST,
   TOKEN_COST_RUN_STAND,
   TOKEN_COST_TEND_TREE,
   TOKEN_COST_BUY_SUPPLIES,

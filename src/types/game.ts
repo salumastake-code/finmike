@@ -78,9 +78,7 @@ export interface LemonadeStand {
   owned: boolean;
   supplyCount: number;   // lemons in inventory
   pricePerCup: number;   // price player has set
-  helperCount: number;   // how many helpers hired
-  shiftsRunByHelpers: number; // free shifts used today (resets each day)
-  helpersPaidToday: boolean; // $10/helper paid at start of day
+  helperShiftsToday: number; // paid helper shifts run today ($5 each, no energy cost)
   hasUmbrella: boolean;
   totalEarned: number;
 }

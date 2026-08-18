@@ -8,7 +8,7 @@ import {
   runLemonadeStand, applyStandResult,
   buySupplies, plantLemonTree, harvestLemonTree, harvestLemonTreeById,
   contributeToDream, withdrawFromDream, advanceDay,
-  weatherDemandMultiplier, spendToken, hireHelper,
+  weatherDemandMultiplier, spendToken, hireForShift, type HireShiftResult,
 } from '@/lib/economy';
 import { plantCrop, harvestPlot, sellAtMarket, initGarden, advanceGardenDay, CROPS } from '@/lib/garden';
 import { feedPet, playWithPet, initPet, advancePetDay } from '@/lib/pet';
@@ -128,10 +128,15 @@ export default function Home() {
 
   function handleHireHelper() {
     if (!save) return;
-    const result = hireHelper(save);
+    const result = hireForShift(save);
     if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
-    setSave(result);
-    addLog(makeEntry('👦', `Hired helper #${result.lemonadeStand.helperCount}! They'll run one shift free per day. You'll pay $10/day to keep them.`, 'good'));
+    const { save: nextSave, cupsServed, revenue, profit } = result as HireShiftResult;
+    setSave(nextSave);
+    if (cupsServed === 0) {
+      addLog(makeEntry('👦', `Hired someone for a shift — quiet day, no cups sold. Cost $5.`, 'bad'));
+    } else {
+      addLog(makeEntry('👦', `Hired someone for a shift! They sold ${cupsServed} cups → +$${revenue} (cost $5, kept $${profit}).`, 'good'));
+    }
   }
 
   function handleWithdrawFromDream(amount: number) {
@@ -303,11 +308,9 @@ export default function Home() {
         addLog(makeEntry('🍋', `Tree #${i + 1} is ready to harvest! 10 free lemons waiting.`, 'event'));
       }
     });
-    // Helper wage warning if they couldn't be paid
-    if (save.lemonadeStand.helperCount > 0 && !updated.lemonadeStand.helpersPaidToday) {
-      addLog(makeEntry('⚠️', `Couldn't pay your ${save.lemonadeStand.helperCount} helper${save.lemonadeStand.helperCount > 1 ? 's' : ''} today — not enough dollars! They'll still work but won't run free shifts.`, 'bad'));
-    } else if (updated.lemonadeStand.helpersPaidToday) {
-      addLog(makeEntry('👦', `Paid ${save.lemonadeStand.helperCount} helper${save.lemonadeStand.helperCount > 1 ? 's' : ''} $${save.lemonadeStand.helperCount * 10} for today's work.`, 'neutral'));
+    // Recap helper shifts from yesterday
+    if (save.lemonadeStand.helperShiftsToday > 0) {
+      addLog(makeEntry('👦', `Yesterday you hired help for ${save.lemonadeStand.helperShiftsToday} shift${save.lemonadeStand.helperShiftsToday > 1 ? 's' : ''}.`, 'neutral'));
     }
     // Pet neglect warning
     if (updated.pet && !save.pet?.fed && !save.pet?.played) {

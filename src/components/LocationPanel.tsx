@@ -47,24 +47,16 @@ export default function LocationPanel({
         <span className="text-xs bg-black/20 rounded-lg px-2 py-1">{COSTS.TOKEN_COST_BUY_SUPPLIES}⚡</span>
       </button>
 
-      {(() => {
-        const shiftsRunByHelpers = save.lemonadeStand.shiftsRunByHelpers ?? 0;
-        const helperCoversThis = shiftsRunByHelpers < save.lemonadeStand.helperCount;
-        const canRun = save.lemonadeStand.supplyCount > 0 && (helperCoversThis || tokensLeft >= COSTS.TOKEN_COST_RUN_STAND);
-        return (
-          <button onClick={onRunStand} disabled={!canRun}
-            className="w-full flex items-center gap-3 p-3 bg-orange-400 hover:bg-orange-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-colors">
-            <span className="text-xl">🥤</span>
-            <div className="flex-1 text-left text-sm">
-              Work a Shift
-              <div className="text-xs opacity-80 font-normal">
-                {helperCoversThis ? `Helper #${shiftsRunByHelpers + 1} is on it!` : `Sell at ${save.lemonadeStand.pricePerCup}💵/cup`}
-              </div>
-            </div>
-            <span className="text-xs bg-black/20 rounded-lg px-2 py-1">{helperCoversThis ? 'FREE' : `${COSTS.TOKEN_COST_RUN_STAND}⚡`}</span>
-          </button>
-        );
-      })()}
+      <button onClick={onRunStand}
+        disabled={save.lemonadeStand.supplyCount === 0 || tokensLeft < COSTS.TOKEN_COST_RUN_STAND}
+        className="w-full flex items-center gap-3 p-3 bg-orange-400 hover:bg-orange-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-colors">
+        <span className="text-xl">🥤</span>
+        <div className="flex-1 text-left text-sm">
+          Work a Shift
+          <div className="text-xs opacity-80 font-normal">Sell at {save.lemonadeStand.pricePerCup}💵/cup</div>
+        </div>
+        <span className="text-xs bg-black/20 rounded-lg px-2 py-1">{COSTS.TOKEN_COST_RUN_STAND}⚡</span>
+      </button>
 
       {/* Price */}
       <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
@@ -84,32 +76,22 @@ export default function LocationPanel({
         </div>
       </div>
 
-      {/* Helpers */}
-      <div className="space-y-2">
-        {/* Show current helpers */}
-        {save.lemonadeStand.helperCount > 0 && (
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-purple-50 border border-purple-200">
-            <span className="text-xl">{'👦'.repeat(Math.min(save.lemonadeStand.helperCount, 3))}</span>
-            <div className="flex-1 text-sm font-bold text-purple-700">
-              {save.lemonadeStand.helperCount} helper{save.lemonadeStand.helperCount > 1 ? 's' : ''} working
-              <div className="text-xs font-normal text-purple-400">
-                {save.lemonadeStand.shiftsRunByHelpers ?? 0}/{save.lemonadeStand.helperCount} free shifts used today
-              </div>
-            </div>
-            <span className="text-green-500">✅</span>
-          </div>
-        )}
-        {/* Always show hire button */}
-        <button onClick={onHireHelper} disabled={save.coins < 10}
-          className="w-full flex items-center gap-3 p-3 rounded-xl border-2 border-dashed border-purple-300 hover:border-purple-400 hover:bg-purple-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-          <span className="text-xl">👦</span>
-          <div className="flex-1 text-left text-sm font-bold text-purple-700">
-            Hire {save.lemonadeStand.helperCount > 0 ? 'another' : 'a'} Helper
-            <div className="text-xs font-normal text-purple-400">Each one runs 1 free shift per day</div>
-          </div>
-          <div className="text-xs bg-purple-100 text-purple-600 rounded-lg px-2 py-1 font-bold">10 💵</div>
-        </button>
-      </div>
+      {/* Hire for a shift */}
+      <button onClick={onHireHelper}
+        disabled={save.coins < COSTS.HELPER_SHIFT_COST || save.lemonadeStand.supplyCount === 0}
+        className="w-full flex items-center gap-3 p-3 rounded-xl border-2 border-dashed border-purple-300 hover:border-purple-400 hover:bg-purple-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+        <span className="text-xl">👦</span>
+        <div className="flex-1 text-left text-sm font-bold text-purple-700">
+          Hire for a Shift
+          <div className="text-xs font-normal text-purple-400">They sell for you — you keep your energy</div>
+        </div>
+        <div className="text-xs bg-purple-100 text-purple-600 rounded-lg px-2 py-1 font-bold">$5</div>
+      </button>
+      {save.lemonadeStand.helperShiftsToday > 0 && (
+        <div className="text-xs text-center text-purple-400">
+          👦 {save.lemonadeStand.helperShiftsToday} hired shift{save.lemonadeStand.helperShiftsToday > 1 ? 's' : ''} today
+        </div>
+      )}
     </div>
   );
 

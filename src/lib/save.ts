@@ -14,8 +14,13 @@ export function loadSave(): PlayerSave | null {
     }
     if (!save.worldUnlocks.bicycle) save.worldUnlocks.bicycle = false;
     if (!save.lemonTrees) save.lemonTrees = [];
-    if (!save.lemonadeStand.helpersPaidToday) save.lemonadeStand.helpersPaidToday = false;
-    if (save.lemonadeStand.shiftsRunByHelpers === undefined) save.lemonadeStand.shiftsRunByHelpers = 0;
+    if (save.lemonadeStand.helperShiftsToday === undefined) save.lemonadeStand.helperShiftsToday = 0;
+    // Clean up old fields from previous versions
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const stand = save.lemonadeStand as any;
+    if (stand.helperCount !== undefined) delete stand.helperCount;
+    if (stand.shiftsRunByHelpers !== undefined) delete stand.shiftsRunByHelpers;
+    if (stand.helpersPaidToday !== undefined) delete stand.helpersPaidToday;
     return save;
   } catch {
     return null;
