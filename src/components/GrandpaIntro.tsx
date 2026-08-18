@@ -71,22 +71,26 @@ export default function GrandpaIntro({ playerName, onDone }: Props) {
   const highlightContent: Record<string, React.ReactNode> = {
     map: (
       <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2 text-sm text-green-800">
-        <span className="text-xl">👆</span> Look at the map above and tap <strong>Your Stand</strong>
+        <span className="text-xl" style={{ display: 'inline-block', animation: 'bounceUp 0.7s ease-in-out infinite' }}>👆</span>
+        <span>Look at the map above and tap <strong>Your Stand</strong></span>
       </div>
     ),
     tokens: (
       <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2 text-sm text-indigo-800">
-        <span className="text-xl">⚡</span> Those are your <strong>Activity Tokens</strong> — the blue dots near the weather
+        <span className="text-xl" style={{ display: 'inline-block', animation: 'bounceUp 0.7s ease-in-out infinite' }}>👆</span>
+        <span>Those are your <strong>Activity Tokens</strong> — the lightning bolts near the weather</span>
       </div>
     ),
     home: (
       <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">
-        <span className="text-xl">🏡</span> Tap <strong>Home</strong> on the map or in the tab bar below
+        <span className="text-xl" style={{ display: 'inline-block', animation: 'bounceUp 0.7s ease-in-out infinite' }}>👆</span>
+        <span>Tap <strong>Home</strong> on the map or in the tab bar below</span>
       </div>
     ),
     weather: (
       <div className="flex items-center gap-2 bg-sky-50 border border-sky-200 rounded-xl px-3 py-2 text-sm text-sky-800">
-        <span className="text-xl">☀️</span> The <strong>weather</strong> shows next to your activity tokens
+        <span className="text-xl" style={{ display: 'inline-block', animation: 'bounceUp 0.7s ease-in-out infinite' }}>👆</span>
+        <span>The <strong>weather</strong> shows next to your activity tokens</span>
       </div>
     ),
   };
