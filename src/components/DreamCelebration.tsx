@@ -29,7 +29,7 @@ export const NEXT_GOALS: NextGoal[] = [
     cost: 100,
     unlocks: 'pet',
     unlocksDesc: 'A loyal friend who lives at your home and keeps you company.',
-    worldPreview: 'Your puppy moves into your neighborhood 🏡',
+    worldPreview: 'Your puppy moves into your house 🏡',
   },
   {
     id: 'treehouse',

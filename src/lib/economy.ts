@@ -112,19 +112,25 @@ export function applyStandResult(save: PlayerSave, result: StandResult): PlayerS
   return updated;
 }
 
-export interface HireShiftResult { save: PlayerSave; cupsServed: number; revenue: number; profit: number }
+export interface HireShiftResult { save: PlayerSave; cupsServed: number; revenue: number; profit: number; isBadShift: boolean }
 
 // ---- Hire someone for one shift ($5, no energy cost) ----
+// 25% chance of a bad shift — helper was slow/distracted, fewer cups sold
 export function hireForShift(save: PlayerSave): HireShiftResult | { error: string } {
   if (save.coins < HELPER_SHIFT_COST) return { error: `Hiring someone for a shift costs $${HELPER_SHIFT_COST}. You only have $${save.coins}.` };
   if (save.lemonadeStand.supplyCount === 0) return { error: 'You\'re out of lemons! Buy supplies first.' };
 
   const { weather, lemonadeStand } = save;
-  const customers = simulateCustomers(weather, lemonadeStand.pricePerCup);
+  const baseCustomers = simulateCustomers(weather, lemonadeStand.pricePerCup);
+
+  // 25% chance of a bad shift — helper sells at half efficiency
+  const isBadShift = Math.random() < 0.25;
+  const customers = isBadShift ? Math.floor(baseCustomers * 0.4) : baseCustomers;
+
   const maxCups = lemonadeStand.supplyCount * CUPS_PER_LEMON;
   const cupsServed = Math.min(customers, maxCups);
   const revenue = cupsServed * lemonadeStand.pricePerCup;
-  const profit = Math.max(0, revenue - HELPER_SHIFT_COST);
+  const profit = revenue - HELPER_SHIFT_COST; // can be negative
 
   const nextSave: PlayerSave = {
     ...save,
@@ -138,7 +144,7 @@ export function hireForShift(save: PlayerSave): HireShiftResult | { error: strin
       helperShiftsToday: (lemonadeStand.helperShiftsToday ?? 0) + 1,
     },
   };
-  return { save: nextSave, cupsServed, revenue, profit };
+  return { save: nextSave, cupsServed, revenue, profit, isBadShift };
 }
 
 // ---- Buy supplies ----

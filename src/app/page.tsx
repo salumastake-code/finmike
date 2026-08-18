@@ -130,10 +130,12 @@ export default function Home() {
     if (!save) return;
     const result = hireForShift(save);
     if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
-    const { save: nextSave, cupsServed, revenue, profit } = result as HireShiftResult;
+    const { save: nextSave, cupsServed, revenue, profit, isBadShift } = result as HireShiftResult;
     setSave(nextSave);
     if (cupsServed === 0) {
-      addLog(makeEntry('👦', `Hired someone for a shift — quiet day, no cups sold. Cost $5.`, 'bad'));
+      addLog(makeEntry('👦', `Hired someone — they showed up late and sold nothing. Lost $5.`, 'bad'));
+    } else if (isBadShift) {
+      addLog(makeEntry('👦', `Helper had a rough shift. Only sold ${cupsServed} cups → $${revenue}. ${profit < 0 ? `Lost $${Math.abs(profit)} after paying them.` : `Barely covered the $5.`}`, 'bad'));
     } else {
       addLog(makeEntry('👦', `Hired someone for a shift! They sold ${cupsServed} cups → +$${revenue} (cost $5, kept $${profit}).`, 'good'));
     }
