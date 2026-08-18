@@ -28,7 +28,7 @@ const STEPS: Step[] = [
   {
     speaker: 'Grandpa',
     emoji: '👴',
-    text: "See that sky up top? That's your day — from 7am to 9pm. Each shift you work moves the sun. When it sets, it's bedtime!",
+    text: "See that sky up top? That's your day — 5 shifts from 7am to 11pm. Each thing you do moves the sun. When it sets, it's bedtime!",
     highlight: 'tokens',
   },
   {

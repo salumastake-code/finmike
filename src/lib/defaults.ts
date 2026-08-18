@@ -103,7 +103,7 @@ export function createNewSave(playerName: string, age: number, dreamGoalId: stri
     season: 'spring',
     weather: 'sunny',
 
-    tokens: { total: 6, spent: 0 },
+    tokens: { total: 5, spent: 0 },
 
     lifeMeters: {
       financialSecurity: 30,

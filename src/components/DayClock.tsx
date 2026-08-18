@@ -6,15 +6,14 @@ interface Props {
   weather: string;
 }
 
-// Day runs 7am → 9pm = 14 hours
-// Each token = 14/6 ≈ 2.33 hours
-const DAY_START = 7;   // 7am
-const DAY_END   = 21;  // 9pm
-const HOURS     = DAY_END - DAY_START; // 14
+// Day runs 7am → 11pm = 16 hours displayed
+// 5 tokens × 4 hours each — time label is 7am + spent*4
+const DAY_START_HOUR = 7; // 7am
+const HOURS_PER_TOKEN = 4;
 
 function formatTime(hour: number): string {
-  const h = Math.floor(hour);
-  const mins = Math.round((hour - h) * 60);
+  const h = Math.floor(hour) % 24;
+  const mins = Math.round((hour - Math.floor(hour)) * 60);
   const ampm = h >= 12 ? 'pm' : 'am';
   const display = h > 12 ? h - 12 : h === 0 ? 12 : h;
   return mins === 0 ? `${display}${ampm}` : `${display}:${String(mins).padStart(2, '0')}${ampm}`;
@@ -32,9 +31,8 @@ export default function DayClock({ tokens, weather }: Props) {
   const total = tokens.total;
   const remaining = total - spent;
 
-  // Current hour in the day
-  const hoursPerToken = HOURS / total;
-  const currentHour = DAY_START + spent * hoursPerToken;
+  // Current hour: 7am + spent×4hrs
+  const currentHour = DAY_START_HOUR + spent * HOURS_PER_TOKEN;
   const timeStr = formatTime(currentHour);
 
   // Sun position as % across the arc (0% = left/morning, 100% = right/evening)
@@ -63,7 +61,7 @@ export default function DayClock({ tokens, weather }: Props) {
               {isBedtime ? '🌙 Bedtime soon!' : isAlmostBedtime ? `🌆 ${timeStr}` : `☀️ ${timeStr}`}
             </span>
           </div>
-          <span className="text-xs font-bold text-sky-900/70">9pm</span>
+          <span className="text-xs font-bold text-sky-900/70">11pm</span>
         </div>
 
         {/* Sun arc track */}
