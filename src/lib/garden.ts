@@ -33,7 +33,7 @@ export function plantCrop(
   if (save.coins < crop.cost) return { error: `You need $${crop.cost} to plant ${crop.name}.` };
   if (save.garden.plots.length >= MAX_PLOTS) return { error: 'All 4 garden plots are full! Harvest first.' };
   const tokensLeft = save.tokens.total - save.tokens.spent;
-  if (tokensLeft < TOKEN_COST_GARDEN) return { error: 'Not enough activity tokens to garden today.' };
+  if (tokensLeft < TOKEN_COST_GARDEN) return { error: 'Not enough energy to garden today.' };
 
   const plot: CropPlot = {
     id: `${cropId}-${Date.now()}`,
@@ -70,7 +70,7 @@ export function harvestPlot(
   if (plot.damaged) return { error: 'This crop was damaged by a storm.' };
 
   const tokensLeft = save.tokens.total - save.tokens.spent;
-  if (tokensLeft < TOKEN_COST_GARDEN) return { error: 'Not enough tokens to harvest today.' };
+  if (tokensLeft < TOKEN_COST_GARDEN) return { error: 'Not enough energy to harvest today.' };
 
   const crop = CROPS[plot.cropId];
   const rainBonus = save.weather === 'rainy' ? crop.rainBonus : 0;
@@ -99,7 +99,7 @@ export function sellAtMarket(
   if (qty === 0) return { error: `You don't have any ${CROPS[cropId].name} to sell.` };
 
   const tokensLeft = save.tokens.total - save.tokens.spent;
-  if (tokensLeft < TOKEN_COST_GARDEN) return { error: 'Not enough tokens to go to the market.' };
+  if (tokensLeft < TOKEN_COST_GARDEN) return { error: 'Not enough energy to go to the market.' };
 
   const revenue = qty * CROPS[cropId].sellPrice;
 

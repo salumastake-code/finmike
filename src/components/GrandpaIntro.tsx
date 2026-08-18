@@ -28,7 +28,7 @@ const STEPS: Step[] = [
   {
     speaker: 'Grandpa',
     emoji: '👴',
-    text: "See that sky up top? That's your day — 5 shifts from 7am to 11pm. Each thing you do moves the sun. When it sets, it's bedtime!",
+    text: "See that sky up top? That's your day — you've got 5 energy from 7am to 9pm. Each thing you do uses energy and moves the sun. When it sets, it's bedtime!",
     highlight: 'tokens',
   },
   {
@@ -78,7 +78,7 @@ export default function GrandpaIntro({ playerName, onDone }: Props) {
     tokens: (
       <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2 text-sm text-indigo-800">
         <span className="text-xl" style={{ display: 'inline-block', animation: 'bounceUp 0.7s ease-in-out infinite' }}>👆</span>
-        <span>The <strong>day clock</strong> is right below the map — watch the sun move!</span>
+        <span>The <strong>day clock</strong> is below the map — watch the sun move as you use energy!</span>
       </div>
     ),
     home: (
@@ -90,7 +90,7 @@ export default function GrandpaIntro({ playerName, onDone }: Props) {
     weather: (
       <div className="flex items-center gap-2 bg-sky-50 border border-sky-200 rounded-xl px-3 py-2 text-sm text-sky-800">
         <span className="text-xl" style={{ display: 'inline-block', animation: 'bounceUp 0.7s ease-in-out infinite' }}>👆</span>
-        <span>The <strong>weather</strong> shows next to your activity tokens</span>
+        <span>The <strong>weather</strong> shows in the day clock below the map</span>
       </div>
     ),
   };

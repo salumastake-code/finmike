@@ -86,7 +86,7 @@ export function runLemonadeStand(save: PlayerSave): StandResult | { error: strin
 
   if (!lemonadeStand.owned) return { error: 'You don\'t have a lemonade stand yet.' };
   if (!lemonadeStand.hasHelper && tokens.spent + TOKEN_COST_RUN_STAND > tokens.total) {
-    return { error: 'Not enough activity tokens left today.' };
+    return { error: 'Not enough energy left today.' };
   }
   if (lemonadeStand.supplyCount === 0) return { error: 'You\'re out of lemons! Buy supplies first.' };
 
@@ -132,7 +132,7 @@ export function applyStandResult(save: PlayerSave, result: StandResult): PlayerS
 // ---- Buy supplies ----
 export function buySupplies(save: PlayerSave): PlayerSave | { error: string } {
   if (save.tokens.spent + TOKEN_COST_BUY_SUPPLIES > save.tokens.total) {
-    return { error: 'Not enough activity tokens to go shopping.' };
+    return { error: 'Not enough energy to go shopping.' };
   }
   if (save.coins < SUPPLY_COST) {
     return { error: `You need ${SUPPLY_COST} dollars to buy supplies. You have ${save.coins}.` };
@@ -153,7 +153,7 @@ export function plantLemonTree(save: PlayerSave): PlayerSave | { error: string }
   if (save.lemonTree.planted) return { error: 'Your lemon tree is already growing!' };
   if (save.coins < 15) return { error: 'Planting a tree costs 15 dollars.' };
   if (save.tokens.spent + TOKEN_COST_TEND_TREE > save.tokens.total) {
-    return { error: 'Not enough activity tokens to plant today.' };
+    return { error: 'Not enough energy to plant today.' };
   }
 
   const updated = { ...save };
@@ -172,7 +172,7 @@ export function harvestLemonTree(save: PlayerSave): PlayerSave | { error: string
     return { error: `Your tree needs ${save.lemonTree.matureAt - save.lemonTree.daysOld} more day(s) to grow.` };
   }
   if (save.tokens.spent + TOKEN_COST_TEND_TREE > save.tokens.total) {
-    return { error: 'Not enough activity tokens to harvest today.' };
+    return { error: 'Not enough energy to harvest today.' };
   }
 
   const updated = { ...save };

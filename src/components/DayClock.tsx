@@ -118,7 +118,7 @@ export default function DayClock({ tokens, weather }: Props) {
             />
           ))}
           <span className={`text-xs font-bold ml-1.5 ${isBedtime ? 'text-indigo-700' : 'text-sky-900/60'}`}>
-            {remaining} {remaining === 1 ? 'shift' : 'shifts'} left
+            {remaining} energy left
           </span>
         </div>
       </div>

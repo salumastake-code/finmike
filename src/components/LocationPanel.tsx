@@ -75,7 +75,7 @@ export default function LocationPanel({
         <button onClick={onHireHelper} disabled={save.coins < 10}
           className="w-full flex items-center gap-3 p-3 rounded-xl border-2 border-dashed border-purple-300 hover:border-purple-400 hover:bg-purple-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
           <span className="text-xl">👦</span>
-          <div className="flex-1 text-left text-sm font-bold text-purple-700">Hire a Helper<div className="text-xs font-normal text-purple-400">They run the stand, you save tokens</div></div>
+          <div className="flex-1 text-left text-sm font-bold text-purple-700">Hire a Helper<div className="text-xs font-normal text-purple-400">They run the stand, you save energy</div></div>
           <div className="text-xs bg-purple-100 text-purple-600 rounded-lg px-2 py-1 font-bold">10 💵</div>
         </button>
       ) : (

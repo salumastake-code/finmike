@@ -202,7 +202,7 @@ export default function Home() {
   function handleVisitTreehouse() {
     if (!save) return;
     const tokensLeft = save.tokens.total - save.tokens.spent;
-    if (tokensLeft < 1) { addLog(makeEntry('❌', 'Not enough tokens to climb up today.', 'bad')); return; }
+    if (tokensLeft < 1) { addLog(makeEntry('❌', 'Not enough energy to climb up today.', 'bad')); return; }
     setSave({
       ...save,
       tokens: spendToken(save.tokens, 'visit_treehouse') ?? save.tokens,
@@ -214,7 +214,7 @@ export default function Home() {
   function handleCatchButterfly() {
     if (!save || !save.treehouse) return;
     const tokensLeft = save.tokens.total - save.tokens.spent;
-    if (tokensLeft < 1) { addLog(makeEntry('❌', 'Not enough tokens.', 'bad')); return; }
+    if (tokensLeft < 1) { addLog(makeEntry('❌', 'Not enough energy.', 'bad')); return; }
     const allButterflies = ['blue', 'yellow', 'purple', 'golden'];
     const uncaught = allButterflies.filter(b => !save.treehouse!.butterflies.includes(b));
     if (uncaught.length === 0) { addLog(makeEntry('🦋', 'You\'ve caught them all!', 'good')); return; }
