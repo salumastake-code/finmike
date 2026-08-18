@@ -85,7 +85,12 @@ export function runLemonadeStand(save: PlayerSave): StandResult | { error: strin
   const { lemonadeStand, tokens, weather } = save;
 
   if (!lemonadeStand.owned) return { error: 'You don\'t have a lemonade stand yet.' };
-  if (!lemonadeStand.hasHelper && tokens.spent + TOKEN_COST_RUN_STAND > tokens.total) {
+
+  // Helpers cover shifts up to helperCount per day (tracked via shiftsRunByHelpers)
+  const shiftsRunByHelpers = lemonadeStand.shiftsRunByHelpers ?? 0;
+  const helperCoversThis = shiftsRunByHelpers < lemonadeStand.helperCount;
+
+  if (!helperCoversThis && tokens.spent + TOKEN_COST_RUN_STAND > tokens.total) {
     return { error: 'Not enough energy left today.' };
   }
   if (lemonadeStand.supplyCount === 0) return { error: 'You\'re out of lemons! Buy supplies first.' };
@@ -99,9 +104,10 @@ export function runLemonadeStand(save: PlayerSave): StandResult | { error: strin
     customers < maxCups ? 'customers' : null;
 
   const revenue = cupsServed * lemonadeStand.pricePerCup;
-  const helperCost = lemonadeStand.hasHelper ? HELPER_WAGE_PER_DAY : 0;
+  // Each helper earns their wage; only charge for helpers that have run today
+  const helperCost = helperCoversThis ? HELPER_WAGE_PER_DAY : 0;
   const profit = Math.max(0, revenue - helperCost);
-  const tokensUsed = lemonadeStand.hasHelper ? 0 : TOKEN_COST_RUN_STAND;
+  const tokensUsed = helperCoversThis ? 0 : TOKEN_COST_RUN_STAND;
 
   return { cupsServed, revenue, suppliesUsed: cupsServed, helperCost, profit, tokensUsed, limitingFactor };
 }
@@ -121,6 +127,8 @@ export function applyStandResult(save: PlayerSave, result: StandResult): PlayerS
   if (result.tokensUsed > 0) {
     updated.tokens = spendToken(save.tokens, 'run_stand') ?? save.tokens;
   } else {
+    // Helper ran this shift — increment shiftsRunByHelpers
+    updated.lemonadeStand.shiftsRunByHelpers = (save.lemonadeStand.shiftsRunByHelpers ?? 0) + 1;
     updated.tokens = { ...save.tokens };
   }
 
@@ -216,6 +224,7 @@ export function advanceDay(save: PlayerSave): PlayerSave {
 
   updated.dayNumber += 1;
   updated.tokens = { ...save.tokens, spent: 0, hoursElapsed: 0 }; // reset tokens + clock
+  updated.lemonadeStand = { ...save.lemonadeStand, shiftsRunByHelpers: 0 }; // helpers reset each day
 
   // Grow tree
   if (save.lemonTree.planted) {

@@ -135,10 +135,10 @@ export default function Home() {
 
   function handleHireHelper() {
     if (!save) return;
-    if (save.lemonadeStand.hasHelper) return;
     if (save.coins < 10) { addLog(makeEntry('❌', 'You need 10 dollars to hire a helper.', 'bad')); return; }
-    setSave({ ...save, coins: save.coins - 10, totalSpent: save.totalSpent + 10, tokens: spendToken(save.tokens, 'hire_helper') ?? save.tokens, lemonadeStand: { ...save.lemonadeStand, hasHelper: true } });
-    addLog(makeEntry('👦', 'Hired a helper! They\'ll run the stand — you keep your tokens.', 'good'));
+    const newCount = save.lemonadeStand.helperCount + 1;
+    setSave({ ...save, coins: save.coins - 10, totalSpent: save.totalSpent + 10, tokens: spendToken(save.tokens, 'hire_helper') ?? save.tokens, lemonadeStand: { ...save.lemonadeStand, helperCount: newCount } });
+    addLog(makeEntry('👦', `Hired helper #${newCount}! They'll each run one shift a day for you.`, 'good'));
   }
 
   function handleSetPrice(price: number) {

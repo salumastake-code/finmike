@@ -35,11 +35,11 @@ export default function ActionPanel({ save, onBuySupplies, onRunStand, onPlantTr
       id: 'stand',
       label: 'Run the Stand',
       emoji: '🥤',
-      desc: save.lemonadeStand.hasHelper
+      desc: save.lemonadeStand.helperCount > 0
         ? 'Helper runs it for free!'
         : `Sell at ${save.lemonadeStand.pricePerCup}💵/cup`,
-      cost: save.lemonadeStand.hasHelper ? 'FREE' : `${COSTS.TOKEN_COST_RUN_STAND}⚡`,
-      disabled: save.lemonadeStand.supplyCount === 0 || (!save.lemonadeStand.hasHelper && tokensLeft < COSTS.TOKEN_COST_RUN_STAND),
+      cost: save.lemonadeStand.helperCount > 0 ? 'FREE' : `${COSTS.TOKEN_COST_RUN_STAND}⚡`,
+      disabled: save.lemonadeStand.supplyCount === 0 || (save.lemonadeStand.helperCount === 0 && tokensLeft < COSTS.TOKEN_COST_RUN_STAND),
       onClick: onRunStand,
       color: 'bg-orange-400 hover:bg-orange-500',
     },
@@ -82,7 +82,7 @@ export default function ActionPanel({ save, onBuySupplies, onRunStand, onPlantTr
       </div>
 
       {/* Hire helper */}
-      {!save.lemonadeStand.hasHelper && (
+      {save.lemonadeStand.helperCount === 0 && (
         <button
           onClick={onHireHelper}
           disabled={save.coins < 10}
@@ -96,7 +96,7 @@ export default function ActionPanel({ save, onBuySupplies, onRunStand, onPlantTr
           <div className="text-xs bg-purple-100 text-purple-600 rounded-lg px-2 py-1 font-bold">10 💵</div>
         </button>
       )}
-      {save.lemonadeStand.hasHelper && (
+      {save.lemonadeStand.helperCount > 0 && (
         <div className="flex items-center gap-3 p-3 rounded-xl bg-purple-50 border border-purple-200">
           <span className="text-2xl">👦</span>
           <div className="flex-1">
