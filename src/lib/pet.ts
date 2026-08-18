@@ -1,4 +1,5 @@
 import type { PlayerSave, Pet } from '@/types/game';
+import { spendToken } from './economy';
 
 // ============================================================
 // Pet Economy
@@ -31,7 +32,7 @@ export function feedPet(save: PlayerSave): PlayerSave | { error: string } {
     ...save,
     coins: save.coins - 2,
     totalSpent: save.totalSpent + 2,
-    tokens: { ...save.tokens, spent: save.tokens.spent + TOKEN_COST_PET },
+    tokens: spendToken(save.tokens, 'feed_pet') ?? save.tokens,
     pet: {
       ...save.pet,
       fed: true,
@@ -49,7 +50,7 @@ export function playWithPet(save: PlayerSave): PlayerSave | { error: string } {
 
   return {
     ...save,
-    tokens: { ...save.tokens, spent: save.tokens.spent + TOKEN_COST_PET },
+    tokens: spendToken(save.tokens, 'play_pet') ?? save.tokens,
     pet: {
       ...save.pet,
       played: true,

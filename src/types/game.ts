@@ -94,6 +94,7 @@ export interface LemonTree {
 export interface ActivityTokens {
   total: number;         // tokens available this day
   spent: number;         // tokens used today
+  hoursElapsed: number;  // hours elapsed today (day starts at 7am, ends at 9pm = 14hrs max)
 }
 
 // ---- Neighbor / Mentor Character ----

@@ -6,17 +6,17 @@ interface Props {
   weather: string;
 }
 
-// Day runs 7am → 11pm = 16 hours displayed
-// 5 tokens × 4 hours each — time label is 7am + spent*4
-const DAY_START_HOUR = 7; // 7am
-const HOURS_PER_TOKEN = 4;
+// Day runs 7am → 9pm = 14 hours max
+// Sun position and time driven by hoursElapsed (not tokens spent)
+const DAY_START_HOUR = 7;  // 7am
+const DAY_END_HOUR   = 21; // 9pm
+const DAY_HOURS      = DAY_END_HOUR - DAY_START_HOUR; // 14
 
 function formatTime(hour: number): string {
   const h = Math.floor(hour) % 24;
-  const mins = Math.round((hour - Math.floor(hour)) * 60);
   const ampm = h >= 12 ? 'pm' : 'am';
   const display = h > 12 ? h - 12 : h === 0 ? 12 : h;
-  return mins === 0 ? `${display}${ampm}` : `${display}:${String(mins).padStart(2, '0')}${ampm}`;
+  return `${display}${ampm}`;
 }
 
 const SKY_COLORS: Record<string, string> = {
@@ -30,17 +30,21 @@ export default function DayClock({ tokens, weather }: Props) {
   const spent = tokens.spent;
   const total = tokens.total;
   const remaining = total - spent;
+  const hoursElapsed = Math.min(tokens.hoursElapsed ?? 0, DAY_HOURS);
 
-  // Current hour: 7am + spent×4hrs
-  const currentHour = DAY_START_HOUR + spent * HOURS_PER_TOKEN;
+  // Current time: 7am + hoursElapsed
+  const currentHour = DAY_START_HOUR + hoursElapsed;
   const timeStr = formatTime(currentHour);
 
-  // Sun position as % across the arc (0% = left/morning, 100% = right/evening)
-  const sunPct = (spent / total) * 100;
+  // Day is over if tokens gone OR clock reached 9pm
+  const dayDone = remaining <= 0 || hoursElapsed >= DAY_HOURS;
 
-  // Bedtime warning
-  const isBedtime = remaining <= 1;
-  const isAlmostBedtime = remaining === 2;
+  // Sun position as % across the arc — driven by hoursElapsed, capped at 9pm
+  const sunPct = Math.min((hoursElapsed / DAY_HOURS) * 100, 100);
+
+  // Bedtime: tokens gone OR 9pm reached
+  const isBedtime = dayDone || remaining <= 1;
+  const isAlmostBedtime = !dayDone && remaining === 2;
 
   // Sun emoji changes with weather + time of day
   const sunEmoji = weather === 'stormy' ? '⛈️' :
@@ -61,7 +65,7 @@ export default function DayClock({ tokens, weather }: Props) {
               {isBedtime ? '🌙 Bedtime soon!' : isAlmostBedtime ? `🌆 ${timeStr}` : `☀️ ${timeStr}`}
             </span>
           </div>
-          <span className="text-xs font-bold text-sky-900/70">11pm</span>
+          <span className="text-xs font-bold text-sky-900/70">9pm</span>
         </div>
 
         {/* Sun arc track */}

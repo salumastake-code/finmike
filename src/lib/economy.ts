@@ -16,6 +16,40 @@ const TOKEN_COST_EXPLORE = 1;
 const TOKEN_COST_BUY_SUPPLIES = 1;
 const TOKEN_COST_HIRE_HELPER = 1;
 
+// Hours each activity advances the clock (day runs 7am → 9pm = 14hrs max)
+export const HOURS: Record<string, number> = {
+  run_stand:      4,  // a full shift
+  buy_supplies:   1,
+  plant_tree:     2,
+  harvest_tree:   2,
+  plant_crop:     2,
+  harvest_crop:   2,
+  sell_market:    1,
+  feed_pet:       1,
+  play_pet:       1,
+  visit_treehouse: 2,
+  catch_butterfly: 2,
+  talk_neighbor:  1,
+  contribute:     1,
+  hire_helper:    1,
+};
+
+export const DAY_START = 7;   // 7am
+export const DAY_END   = 21;  // 9pm
+
+// Spend one token + advance hours; returns updated tokens object
+// Returns null if no tokens left or day already over
+import type { ActivityTokens } from '@/types/game';
+export function spendToken(tokens: ActivityTokens, action: string): ActivityTokens | null {
+  if (tokens.spent >= tokens.total) return null;
+  const hrs = HOURS[action] ?? 1;
+  return {
+    ...tokens,
+    spent: tokens.spent + 1,
+    hoursElapsed: Math.min(tokens.hoursElapsed + hrs, DAY_END - DAY_START),
+  };
+}
+
 // ---- Weather demand modifier ----
 export function weatherDemandMultiplier(weather: Weather): number {
   switch (weather) {
@@ -59,7 +93,6 @@ export function runLemonadeStand(save: PlayerSave): StandResult | { error: strin
   const customers = simulateCustomers(weather, lemonadeStand.pricePerCup);
   const maxCups = lemonadeStand.supplyCount * CUPS_PER_LEMON;
   const cupsServed = Math.min(customers, maxCups);
-  // limitingFactor: were we capped by supplies or by customer count?
   const limitingFactor: 'supplies' | 'customers' | null =
     cupsServed === 0 ? null :
     maxCups < customers ? 'supplies' :
@@ -67,7 +100,6 @@ export function runLemonadeStand(save: PlayerSave): StandResult | { error: strin
 
   const revenue = cupsServed * lemonadeStand.pricePerCup;
   const helperCost = lemonadeStand.hasHelper ? HELPER_WAGE_PER_DAY : 0;
-  // Profit floored at 0 — the helper doesn't take money you don't have
   const profit = Math.max(0, revenue - helperCost);
   const tokensUsed = lemonadeStand.hasHelper ? 0 : TOKEN_COST_RUN_STAND;
 
@@ -78,7 +110,6 @@ export function runLemonadeStand(save: PlayerSave): StandResult | { error: strin
 export function applyStandResult(save: PlayerSave, result: StandResult): PlayerSave {
   const updated = { ...save };
   updated.lemonadeStand = { ...save.lemonadeStand };
-  updated.tokens = { ...save.tokens };
   updated.lifeMeters = { ...save.lifeMeters };
 
   updated.coins += result.profit;
@@ -86,9 +117,13 @@ export function applyStandResult(save: PlayerSave, result: StandResult): PlayerS
   updated.totalSpent += result.helperCost;
   updated.lemonadeStand.supplyCount -= result.suppliesUsed;
   updated.lemonadeStand.totalEarned += result.revenue;
-  updated.tokens.spent += result.tokensUsed;
 
-  // Small happiness boost from running the stand
+  if (result.tokensUsed > 0) {
+    updated.tokens = spendToken(save.tokens, 'run_stand') ?? save.tokens;
+  } else {
+    updated.tokens = { ...save.tokens };
+  }
+
   updated.lifeMeters.happiness = Math.min(100, updated.lifeMeters.happiness + 2);
 
   return updated;
@@ -105,12 +140,10 @@ export function buySupplies(save: PlayerSave): PlayerSave | { error: string } {
 
   const updated = { ...save };
   updated.lemonadeStand = { ...save.lemonadeStand };
-  updated.tokens = { ...save.tokens };
-
+  updated.tokens = spendToken(save.tokens, 'buy_supplies') ?? save.tokens;
   updated.coins -= SUPPLY_COST;
   updated.totalSpent += SUPPLY_COST;
   updated.lemonadeStand.supplyCount += LEMONS_PER_BATCH;
-  updated.tokens.spent += TOKEN_COST_BUY_SUPPLIES;
 
   return updated;
 }
@@ -125,7 +158,7 @@ export function plantLemonTree(save: PlayerSave): PlayerSave | { error: string }
 
   const updated = { ...save };
   updated.lemonTree = { ...save.lemonTree, planted: true, daysOld: 0 };
-  updated.tokens = { ...save.tokens, spent: save.tokens.spent + TOKEN_COST_TEND_TREE };
+  updated.tokens = spendToken(save.tokens, 'plant_tree') ?? save.tokens;
   updated.coins -= 15;
   updated.totalSpent += 15;
 
@@ -145,10 +178,8 @@ export function harvestLemonTree(save: PlayerSave): PlayerSave | { error: string
   const updated = { ...save };
   updated.lemonadeStand = { ...save.lemonadeStand };
   updated.lemonTree = { ...save.lemonTree };
-  updated.tokens = { ...save.tokens };
-
+  updated.tokens = spendToken(save.tokens, 'harvest_tree') ?? save.tokens;
   updated.lemonadeStand.supplyCount += save.lemonTree.lemonYield;
-  updated.tokens.spent += TOKEN_COST_TEND_TREE;
 
   return updated;
 }
@@ -184,7 +215,7 @@ export function advanceDay(save: PlayerSave): PlayerSave {
   updated.dreamGoal = { ...save.dreamGoal };
 
   updated.dayNumber += 1;
-  updated.tokens.spent = 0; // reset tokens
+  updated.tokens = { ...save.tokens, spent: 0, hoursElapsed: 0 }; // reset tokens + clock
 
   // Grow tree
   if (save.lemonTree.planted) {

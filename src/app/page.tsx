@@ -8,7 +8,7 @@ import {
   runLemonadeStand, applyStandResult,
   buySupplies, plantLemonTree, harvestLemonTree,
   contributeToDream, advanceDay,
-  weatherDemandMultiplier,
+  weatherDemandMultiplier, spendToken,
 } from '@/lib/economy';
 import { plantCrop, harvestPlot, sellAtMarket, initGarden, advanceGardenDay, CROPS } from '@/lib/garden';
 import { feedPet, playWithPet, initPet, advancePetDay } from '@/lib/pet';
@@ -137,7 +137,7 @@ export default function Home() {
     if (!save) return;
     if (save.lemonadeStand.hasHelper) return;
     if (save.coins < 10) { addLog(makeEntry('❌', 'You need 10 dollars to hire a helper.', 'bad')); return; }
-    setSave({ ...save, coins: save.coins - 10, totalSpent: save.totalSpent + 10, lemonadeStand: { ...save.lemonadeStand, hasHelper: true } });
+    setSave({ ...save, coins: save.coins - 10, totalSpent: save.totalSpent + 10, tokens: spendToken(save.tokens, 'hire_helper') ?? save.tokens, lemonadeStand: { ...save.lemonadeStand, hasHelper: true } });
     addLog(makeEntry('👦', 'Hired a helper! They\'ll run the stand — you keep your tokens.', 'good'));
   }
 
@@ -205,7 +205,7 @@ export default function Home() {
     if (tokensLeft < 1) { addLog(makeEntry('❌', 'Not enough tokens to climb up today.', 'bad')); return; }
     setSave({
       ...save,
-      tokens: { ...save.tokens, spent: save.tokens.spent + 1 },
+      tokens: spendToken(save.tokens, 'visit_treehouse') ?? save.tokens,
       treehouse: { visited: true, questGiven: true, butterflies: save.treehouse?.butterflies ?? [], decorations: save.treehouse?.decorations ?? [] },
     });
     addLog(makeEntry('🌳', 'You climbed up to your treehouse! Grandpa was right — it\'s magical up here.', 'event'));
@@ -218,14 +218,13 @@ export default function Home() {
     const allButterflies = ['blue', 'yellow', 'purple', 'golden'];
     const uncaught = allButterflies.filter(b => !save.treehouse!.butterflies.includes(b));
     if (uncaught.length === 0) { addLog(makeEntry('🦋', 'You\'ve caught them all!', 'good')); return; }
-    // Weighted catch chance: common easy, legendary hard
     const weights: Record<string, number> = { blue: 60, yellow: 55, purple: 25, golden: 8 };
     const available = uncaught.filter(b => Math.random() * 100 < weights[b]);
     const caught = available.length > 0 ? available[Math.floor(Math.random() * available.length)] : null;
     const names: Record<string, string> = { blue: 'Blue Morpho 🦋', yellow: 'Yellow Swallowtail 🌼', purple: 'Purple Emperor 💜', golden: 'Golden Wing ✨' };
     setSave({
       ...save,
-      tokens: { ...save.tokens, spent: save.tokens.spent + 1 },
+      tokens: spendToken(save.tokens, 'catch_butterfly') ?? save.tokens,
       treehouse: { ...save.treehouse, butterflies: caught ? [...save.treehouse.butterflies, caught] : save.treehouse.butterflies },
     });
     if (caught) {

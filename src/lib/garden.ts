@@ -1,4 +1,5 @@
 import type { PlayerSave, CropId, CropPlot, Garden } from '@/types/game';
+import { spendToken } from './economy';
 
 // ============================================================
 // Garden Economy
@@ -47,7 +48,7 @@ export function plantCrop(
     ...save,
     coins: save.coins - crop.cost,
     totalSpent: save.totalSpent + crop.cost,
-    tokens: { ...save.tokens, spent: save.tokens.spent + TOKEN_COST_GARDEN },
+    tokens: spendToken(save.tokens, 'plant_crop') ?? save.tokens,
     garden: {
       ...save.garden,
       plots: [...save.garden.plots, plot],
@@ -77,7 +78,7 @@ export function harvestPlot(
 
   return {
     ...save,
-    tokens: { ...save.tokens, spent: save.tokens.spent + TOKEN_COST_GARDEN },
+    tokens: spendToken(save.tokens, 'harvest_crop') ?? save.tokens,
     garden: {
       ...save.garden,
       plots: save.garden.plots.map(p => p.id === plotId ? { ...p, harvested: true } : p),
@@ -106,10 +107,9 @@ export function sellAtMarket(
     ...save,
     coins: save.coins + revenue,
     totalEarned: save.totalEarned + revenue,
-    tokens: { ...save.tokens, spent: save.tokens.spent + TOKEN_COST_GARDEN },
+    tokens: spendToken(save.tokens, 'sell_market') ?? save.tokens,
     garden: {
       ...save.garden,
-      // Clear sold plots (harvested ones)
       plots: save.garden.plots.filter(p => !p.harvested),
       marketInventory: {
         ...save.garden.marketInventory,
