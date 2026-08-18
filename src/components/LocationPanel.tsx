@@ -48,7 +48,7 @@ export default function LocationPanel({
         disabled={save.lemonadeStand.supplyCount === 0 || (!save.lemonadeStand.hasHelper && tokensLeft < COSTS.TOKEN_COST_RUN_STAND)}
         className="w-full flex items-center gap-3 p-3 bg-orange-400 hover:bg-orange-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-colors">
         <span className="text-xl">🥤</span>
-        <div className="flex-1 text-left text-sm">Open the Stand<div className="text-xs opacity-80 font-normal">{save.lemonadeStand.hasHelper ? 'Helper runs it!' : `Sell at ${save.lemonadeStand.pricePerCup}💵/cup`}</div></div>
+        <div className="flex-1 text-left text-sm">Work a Shift<div className="text-xs opacity-80 font-normal">{save.lemonadeStand.hasHelper ? 'Helper runs it — you keep your time!' : `Sell at ${save.lemonadeStand.pricePerCup}💵/cup`}</div></div>
         <span className="text-xs bg-black/20 rounded-lg px-2 py-1">{save.lemonadeStand.hasHelper ? 'FREE' : `${COSTS.TOKEN_COST_RUN_STAND}⚡`}</span>
       </button>
 

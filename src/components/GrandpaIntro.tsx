@@ -28,7 +28,7 @@ const STEPS: Step[] = [
   {
     speaker: 'Grandpa',
     emoji: '👴',
-    text: "Every day you get Activity Tokens — those blue dots. Think of them like your energy. Spend them wisely!",
+    text: "See that sky up top? That's your day — from 7am to 9pm. Each shift you work moves the sun. When it sets, it's bedtime!",
     highlight: 'tokens',
   },
   {
@@ -78,7 +78,7 @@ export default function GrandpaIntro({ playerName, onDone }: Props) {
     tokens: (
       <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2 text-sm text-indigo-800">
         <span className="text-xl" style={{ display: 'inline-block', animation: 'bounceUp 0.7s ease-in-out infinite' }}>👆</span>
-        <span>Those are your <strong>Activity Tokens</strong> — the lightning bolts near the weather</span>
+        <span>The <strong>day clock</strong> is right below the map — watch the sun move!</span>
       </div>
     ),
     home: (

@@ -22,8 +22,7 @@ import PetPanel from '@/components/PetPanel';
 import TreehousePanel from '@/components/TreehousePanel';
 import WorldMap from '@/components/WorldMap';
 import LocationPanel from '@/components/LocationPanel';
-import TokenBar from '@/components/TokenBar';
-import WeatherBadge from '@/components/WeatherBadge';
+import DayClock from '@/components/DayClock';
 import EventLog from '@/components/EventLog';
 import WorldCodeModal from '@/components/WorldCodeModal';
 
@@ -84,9 +83,9 @@ export default function Home() {
       save.weather === 'stormy' ? ' (hardly anyone out in this storm!)' : '';
 
     if (result.cupsServed === 0) {
-      addLog(makeEntry('😔', `No cups sold today.${weatherNote}`, 'bad'));
+      addLog(makeEntry('😔', `Quiet shift — no cups sold.${weatherNote}`, 'bad'));
     } else {
-      addLog(makeEntry('🥤', `Sold ${result.cupsServed} cups → +${result.revenue} dollars!${weatherNote}`, 'good'));
+      addLog(makeEntry('🥤', `Shift done! Sold ${result.cupsServed} cups → +${result.revenue} dollars!${weatherNote}`, 'good'));
     }
     if (result.limitingFactor === 'supplies') {
       addLog(makeEntry('⚠️', 'Ran out of lemons before all customers were served!', 'neutral'));
@@ -369,12 +368,9 @@ export default function Home() {
         onSelectLocation={setActiveLocation}
       />
 
-      {/* Weather + Token strip */}
-      <div className="flex gap-2 px-4 py-2 bg-white border-b border-gray-100">
-        <WeatherBadge weather={save.weather} season={save.season} day={save.dayNumber} />
-        <div className="flex-1">
-          <TokenBar tokens={save.tokens} />
-        </div>
+      {/* Day clock strip */}
+      <div className="px-4 py-2 bg-white border-b border-gray-100">
+        <DayClock tokens={save.tokens} weather={save.weather} />
       </div>
 
       {/* Location panel */}
