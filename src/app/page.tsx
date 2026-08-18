@@ -230,6 +230,21 @@ export default function Home() {
     addLog(makeEntry('🌳', 'You climbed up to your treehouse! Grandpa was right — it\'s magical up here.', 'event'));
   }
 
+  function handleBuyAddon(addonId: string, cost: number) {
+    if (!save) return;
+    if (save.coins < cost) { addLog(makeEntry('❌', `You need $${cost} for that.`, 'bad')); return; }
+    if (!save.treehouse) return;
+    if (save.treehouse.decorations.includes(addonId)) { addLog(makeEntry('❌', 'Already installed!', 'bad')); return; }
+    const addonNames: Record<string, string> = { telescope: '🔭 Telescope', rope_swing: '🪢 Rope Swing', hammock: '🌙 Hammock', flag: '🚩 Flag', lantern: '🏮 Lantern' };
+    setSave({
+      ...save,
+      coins: save.coins - cost,
+      totalSpent: save.totalSpent + cost,
+      treehouse: { ...save.treehouse, decorations: [...save.treehouse.decorations, addonId] },
+    });
+    addLog(makeEntry('🌳', `Added ${addonNames[addonId] ?? addonId} to your treehouse!`, 'good'));
+  }
+
   function handleCatchButterfly() {
     if (!save || !save.treehouse) return;
     const tokensLeft = save.tokens.total - save.tokens.spent;
@@ -255,6 +270,25 @@ export default function Home() {
 
   function handlePickNextGoal(goalId: string) {
     if (!save) return;
+
+    // If no available goals remain, just close the celebration
+    if (goalId === '__done__') {
+      setShowCelebration(false);
+      // Still apply the completed goal's world unlock
+      const completedUnlock = save.dreamGoal.unlocks;
+      if (completedUnlock) {
+        setSave(prev => {
+          if (!prev) return prev;
+          const newUnlocks = { ...prev.worldUnlocks, [completedUnlock]: true };
+          const gardenInit = completedUnlock === 'garden' && !prev.garden ? initGarden() : prev.garden;
+          const treeInit = completedUnlock === 'treehouse' && !prev.treehouse
+            ? { visited: false, questGiven: false, butterflies: [], decorations: [] } : prev.treehouse;
+          return { ...prev, worldUnlocks: newUnlocks, garden: gardenInit, treehouse: treeInit };
+        });
+      }
+      return;
+    }
+
     const goal = NEXT_GOALS.find(g => g.id === goalId);
     if (!goal) return;
 
@@ -264,11 +298,13 @@ export default function Home() {
       ...save.worldUnlocks,
       ...(completedUnlock ? { [completedUnlock]: true } : {}),
     };
-    // Initialize the newly unlocked feature if not already present
+
+    // Initialize newly unlocked features
     const gardenInit = completedUnlock === 'garden' && !save.garden ? initGarden() : save.garden;
     const treeInit = completedUnlock === 'treehouse' && !save.treehouse
-      ? { visited: false, questGiven: false, butterflies: [], decorations: [] }
-      : save.treehouse;
+      ? { visited: false, questGiven: false, butterflies: [], decorations: [] } : save.treehouse;
+    // Pet: unlock adds the tab but doesn't init pet yet (player names it on first visit)
+    // Just ensure worldUnlocks.pet is set — PetPanel handles the rest
 
     setSave({
       ...save,
@@ -287,6 +323,12 @@ export default function Home() {
     });
     setShowCelebration(false);
     addLog(makeEntry('✨', `New dream: ${goal.name}! ${goal.unlocksDesc}`, 'event'));
+    if (completedUnlock === 'pet') {
+      addLog(makeEntry('🐶', `Your puppy arrived! Tap the 🐶 Puppy tab to meet them and give them a name!`, 'event'));
+    }
+    if (completedUnlock === 'bicycle') {
+      addLog(makeEntry('🚲', `You got your bicycle! Buzzy Bee has a delivery quest for you — visit the 🐝 tab!`, 'event'));
+    }
   }
 
   function handleNextDay() {
@@ -319,8 +361,10 @@ export default function Home() {
     if (save.lemonadeStand.helperShiftsToday > 0) {
       addLog(makeEntry('👦', `Yesterday you hired help for ${save.lemonadeStand.helperShiftsToday} shift${save.lemonadeStand.helperShiftsToday > 1 ? 's' : ''}.`, 'neutral'));
     }
-    // Pet neglect warning
-    if (updated.pet && !save.pet?.fed && !save.pet?.played) {
+    // Pet neglect / runaway
+    if (save.pet && !updated.pet) {
+      addLog(makeEntry('💔', `${save.pet.name} ran away... They were too unhappy for too long. You can earn them back by saving for a new puppy.`, 'bad'));
+    } else if (updated.pet && !save.pet?.fed && !save.pet?.played) {
       addLog(makeEntry('🐶', `${updated.pet.name} looks sad... Make sure to feed and play today!`, 'bad'));
     }
 
@@ -457,6 +501,7 @@ export default function Home() {
                 save={save}
                 onVisit={handleVisitTreehouse}
                 onCatch={handleCatchButterfly}
+                onBuyAddon={handleBuyAddon}
               />
             ) : (
               <LocationPanel

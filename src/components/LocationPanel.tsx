@@ -237,7 +237,11 @@ export default function LocationPanel({
     },
     buzzybee: {
       name: 'Buzzy Bee 🐝', emoji: '🐝',
-      lines: [
+      lines: save.worldUnlocks?.bicycle ? [
+        "You got a bike! I've got a delivery route that's perfect for you. Come back tomorrow and we'll set it up!",
+        "With that bicycle, you could deliver for three neighborhoods. Think about it!",
+        "Speed matters in business. That bike is going to change everything for you.",
+      ] : [
         "The busier the better! I run three stands and I love every minute.",
         "If customers are slow, try lowering your price. More cups, more dollars!",
         "Hiring a helper was the best thing I ever did. Freed up so much time!",

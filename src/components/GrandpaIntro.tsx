@@ -116,7 +116,7 @@ export default function GrandpaIntro({ playerName, onDone }: Props) {
         {/* Dialogue text */}
         <div className="px-5 py-4 space-y-3">
           <p className="text-gray-800 leading-relaxed text-base">
-            {step === 0 ? `Well, hello there, ${playerName}! ` : ''}{current.text}
+            {step === 0 ? `Well, hello there, ${playerName}! Welcome to our little town. I'm so glad you're here.` : current.text}
           </p>
           {/* Inline contextual highlight — no broken absolute positioning */}
           {current.highlight && highlightContent[current.highlight] && (

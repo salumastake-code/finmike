@@ -173,7 +173,27 @@ export default function DreamCelebration({ completedGoal, unlockedGoals = [], on
           </>
         )}
 
-        {step === 'pick' && (
+        {step === 'pick' && availableGoals.length === 0 && (
+          <div className="p-6 text-center">
+            <div className="text-6xl mb-3">🏆</div>
+            <h2 className="text-xl font-black text-gray-800 mb-2">You've done it all!</h2>
+            <p className="text-sm text-gray-500 mb-2">You unlocked every dream in your world.</p>
+            <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-3 mb-5 text-left">
+              <span className="text-3xl flex-shrink-0">👴</span>
+              <p className="text-sm text-amber-800 italic leading-relaxed">
+                "You saved for everything you dreamed of. That's not luck — that's character. I couldn't be prouder."
+              </p>
+            </div>
+            <button
+              onClick={() => onPickNext('__done__')}
+              className="w-full py-4 bg-green-500 hover:bg-green-600 active:scale-95 text-white font-black rounded-2xl text-lg transition-all"
+            >
+              Back to my world 🌍
+            </button>
+          </div>
+        )}
+
+        {step === 'pick' && availableGoals.length > 0 && (
           <div className="p-5">
             <div className="text-center mb-5">
               <div className="text-4xl mb-1">✨</div>

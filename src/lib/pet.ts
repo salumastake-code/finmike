@@ -65,6 +65,16 @@ export function advancePetDay(save: PlayerSave): PlayerSave {
   if (!save.pet) return save;
   const wasNeglected = !save.pet.fed && !save.pet.played;
   const newHappiness = Math.max(0, save.pet.happiness - (wasNeglected ? HAPPINESS_DECAY : 2));
+  const newDaysNeglected = wasNeglected ? save.pet.daysNeglected + 1 : 0;
+
+  // Pet runs away if happiness hits 0 and neglected for 3+ days
+  if (newHappiness === 0 && newDaysNeglected >= 3) {
+    return {
+      ...save,
+      pet: undefined,
+      worldUnlocks: { ...save.worldUnlocks, pet: false }, // unlock resets so they can re-earn
+    };
+  }
 
   return {
     ...save,
@@ -73,7 +83,7 @@ export function advancePetDay(save: PlayerSave): PlayerSave {
       fed: false,
       played: false,
       happiness: newHappiness,
-      daysNeglected: wasNeglected ? save.pet.daysNeglected + 1 : 0,
+      daysNeglected: newDaysNeglected,
     },
   };
 }
