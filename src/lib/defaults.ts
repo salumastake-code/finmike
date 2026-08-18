@@ -127,6 +127,7 @@ export function createNewSave(playerName: string, age: number, dreamGoalId: stri
       garden: false,
       pet: false,
       treehouse: false,
+      bicycle: false,
     },
 
     lemonadeStand: {
@@ -135,6 +136,7 @@ export function createNewSave(playerName: string, age: number, dreamGoalId: stri
       pricePerCup: 1,
       helperCount: 0,
       shiftsRunByHelpers: 0,
+      helpersPaidToday: false,
       hasUmbrella: false,
       totalEarned: 0,
     },
@@ -145,6 +147,8 @@ export function createNewSave(playerName: string, age: number, dreamGoalId: stri
       matureAt: 3,
       lemonYield: 5,
     },
+
+    lemonTrees: [],
 
     neighbors: NEIGHBORS,
     quests: INITIAL_QUESTS,

@@ -40,6 +40,15 @@ export const NEXT_GOALS: NextGoal[] = [
     unlocksDesc: 'A secret hangout spot with new quests and hidden butterflies.',
     worldPreview: 'The Treehouse appears on your map with new questlines 🦋',
   },
+  {
+    id: 'bicycle',
+    name: 'Bicycle',
+    emoji: '🚲',
+    cost: 80,
+    unlocks: 'bicycle',
+    unlocksDesc: 'Get around town faster — unlocks delivery quests and new areas.',
+    worldPreview: 'New delivery quest from Buzzy Bee appears on your map 📦',
+  },
 ];
 
 const GRANDPA_QUOTES: Record<string, string> = {
@@ -60,17 +69,19 @@ interface ConfettiPiece {
 
 interface Props {
   completedGoal: DreamGoal;
+  unlockedGoals?: string[]; // already-unlocked goal ids to exclude
   onPickNext: (goalId: string) => void;
 }
 
-export default function DreamCelebration({ completedGoal, onPickNext }: Props) {
+export default function DreamCelebration({ completedGoal, unlockedGoals = [], onPickNext }: Props) {
   const [step, setStep] = useState<'celebrate' | 'pick'>('celebrate');
   const [picked, setPicked] = useState<string | null>(null);
   const [confetti, setConfetti] = useState<ConfettiPiece[]>([]);
   const [showGoal, setShowGoal] = useState(false);
 
-  // Available next goals — filter out the one just completed
-  const availableGoals = NEXT_GOALS.filter(g => g.id !== completedGoal.id);
+  // Filter out completed goal AND any already-unlocked goals
+  const alreadyDone = new Set([completedGoal.id, ...unlockedGoals]);
+  const availableGoals = NEXT_GOALS.filter(g => !alreadyDone.has(g.id));
 
   useEffect(() => {
     const colors = ['#FCD34D', '#34D399', '#60A5FA', '#F87171', '#A78BFA', '#FB923C', '#FFFFFF', '#FDE68A'];

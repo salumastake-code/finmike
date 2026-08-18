@@ -8,10 +8,14 @@ export function loadSave(): PlayerSave | null {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return null;
     const save = JSON.parse(raw) as PlayerSave;
-    // Migrate old saves missing worldUnlocks
+    // Migrate old saves missing fields
     if (!save.worldUnlocks) {
-      save.worldUnlocks = { garden: false, pet: false, treehouse: false };
+      save.worldUnlocks = { garden: false, pet: false, treehouse: false, bicycle: false };
     }
+    if (!save.worldUnlocks.bicycle) save.worldUnlocks.bicycle = false;
+    if (!save.lemonTrees) save.lemonTrees = [];
+    if (!save.lemonadeStand.helpersPaidToday) save.lemonadeStand.helpersPaidToday = false;
+    if (save.lemonadeStand.shiftsRunByHelpers === undefined) save.lemonadeStand.shiftsRunByHelpers = 0;
     return save;
   } catch {
     return null;

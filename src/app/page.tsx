@@ -6,9 +6,9 @@ import { loadSave, writeSave } from '@/lib/save';
 import { createNewSave } from '@/lib/defaults';
 import {
   runLemonadeStand, applyStandResult,
-  buySupplies, plantLemonTree, harvestLemonTree,
-  contributeToDream, advanceDay,
-  weatherDemandMultiplier, spendToken,
+  buySupplies, plantLemonTree, harvestLemonTree, harvestLemonTreeById,
+  contributeToDream, withdrawFromDream, advanceDay,
+  weatherDemandMultiplier, spendToken, hireHelper,
 } from '@/lib/economy';
 import { plantCrop, harvestPlot, sellAtMarket, initGarden, advanceGardenDay, CROPS } from '@/lib/garden';
 import { feedPet, playWithPet, initPet, advancePetDay } from '@/lib/pet';
@@ -109,15 +109,8 @@ export default function Home() {
     const result = plantLemonTree(save);
     if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
     setSave(result);
-    addLog(makeEntry('🌱', `Planted a lemon tree! Ready to harvest in ${result.lemonTree.matureAt} days.`, 'good'));
-  }
-
-  function handleHarvestTree() {
-    if (!save) return;
-    const result = harvestLemonTree(save);
-    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
-    setSave(result);
-    addLog(makeEntry('🍋', `Harvested ${save.lemonTree.lemonYield} free lemons from your tree!`, 'good'));
+    const treeNum = (result.lemonTrees?.length ?? 1);
+    addLog(makeEntry('🌱', `Planted tree #${treeNum}! Grows in 3 days, then yields 10 lemons every 3 days.`, 'good'));
   }
 
   function handleContribute(amount: number) {
@@ -135,10 +128,28 @@ export default function Home() {
 
   function handleHireHelper() {
     if (!save) return;
-    if (save.coins < 10) { addLog(makeEntry('❌', 'You need 10 dollars to hire a helper.', 'bad')); return; }
-    const newCount = save.lemonadeStand.helperCount + 1;
-    setSave({ ...save, coins: save.coins - 10, totalSpent: save.totalSpent + 10, tokens: spendToken(save.tokens, 'hire_helper') ?? save.tokens, lemonadeStand: { ...save.lemonadeStand, helperCount: newCount } });
-    addLog(makeEntry('👦', `Hired helper #${newCount}! They'll each run one shift a day for you.`, 'good'));
+    const result = hireHelper(save);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    setSave(result);
+    addLog(makeEntry('👦', `Hired helper #${result.lemonadeStand.helperCount}! They'll run one shift free per day. You'll pay $10/day to keep them.`, 'good'));
+  }
+
+  function handleWithdrawFromDream(amount: number) {
+    if (!save) return;
+    const result = withdrawFromDream(save, amount);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    setSave(result);
+    addLog(makeEntry('🐷', `Withdrew $${amount} from savings. Balance: $${result.dreamGoal.saved.toFixed(0)}`, 'neutral'));
+  }
+
+  function handleHarvestTree(treeId?: string) {
+    if (!save) return;
+    const result = treeId ? harvestLemonTreeById(save, treeId) : harvestLemonTree(save);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    setSave(result);
+    const trees = save.lemonTrees ?? [];
+    const tree = treeId ? trees.find(t => t.id === treeId) : trees[0];
+    addLog(makeEntry('🍋', `Harvested ${tree?.lemonYield ?? 10} lemons! Ready again in ${tree?.harvestEveryDays ?? 3} days.`, 'good'));
   }
 
   function handleSetPrice(price: number) {
@@ -283,8 +294,20 @@ export default function Home() {
       `Morning of Day ${updated.dayNumber}. ${updated.weather.charAt(0).toUpperCase() + updated.weather.slice(1)}.${demandNote}`,
       updated.weather === 'rainy' || updated.weather === 'stormy' ? 'bad' : 'neutral',
     ));
-    if (updated.lemonTree.planted && updated.lemonTree.daysOld >= updated.lemonTree.matureAt && save.lemonTree.daysOld < save.lemonTree.matureAt) {
-      addLog(makeEntry('🌳', 'Your lemon tree is ready to harvest!', 'event'));
+    // Tree harvest ready notifications
+    (updated.lemonTrees ?? []).forEach((tree, i) => {
+      const wasMature = (save.lemonTrees ?? [])[i]?.daysOld >= tree.matureAt - 1;
+      const daysSince = tree.lastHarvestedDay === 0 ? tree.daysOld : updated.dayNumber - tree.lastHarvestedDay;
+      const isReady = tree.daysOld >= tree.matureAt && daysSince >= tree.harvestEveryDays;
+      if (isReady && !wasMature) {
+        addLog(makeEntry('🍋', `Tree #${i + 1} is ready to harvest! 10 free lemons waiting.`, 'event'));
+      }
+    });
+    // Helper wage warning if they couldn't be paid
+    if (save.lemonadeStand.helperCount > 0 && !updated.lemonadeStand.helpersPaidToday) {
+      addLog(makeEntry('⚠️', `Couldn't pay your ${save.lemonadeStand.helperCount} helper${save.lemonadeStand.helperCount > 1 ? 's' : ''} today — not enough dollars! They'll still work but won't run free shifts.`, 'bad'));
+    } else if (updated.lemonadeStand.helpersPaidToday) {
+      addLog(makeEntry('👦', `Paid ${save.lemonadeStand.helperCount} helper${save.lemonadeStand.helperCount > 1 ? 's' : ''} $${save.lemonadeStand.helperCount * 10} for today's work.`, 'neutral'));
     }
     // Pet neglect warning
     if (updated.pet && !save.pet?.fed && !save.pet?.played) {
@@ -320,6 +343,7 @@ export default function Home() {
       {showCelebration && save && (
         <DreamCelebration
           completedGoal={save.dreamGoal}
+          unlockedGoals={Object.entries(save.worldUnlocks ?? {}).filter(([,v]) => v).map(([k]) => k)}
           onPickNext={handlePickNextGoal}
         />
       )}
@@ -435,6 +459,7 @@ export default function Home() {
                 onPlantTree={handlePlantTree}
                 onHarvestTree={handleHarvestTree}
                 onContribute={handleContribute}
+                onWithdraw={handleWithdrawFromDream}
                 onNextDay={handleNextDay}
               />
             )}

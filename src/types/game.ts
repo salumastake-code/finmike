@@ -34,6 +34,7 @@ export interface WorldUnlocks {
   garden: boolean;
   pet: boolean;
   treehouse: boolean;
+  bicycle: boolean;
 }
 
 // ---- Garden ----
@@ -77,18 +78,30 @@ export interface LemonadeStand {
   owned: boolean;
   supplyCount: number;   // lemons in inventory
   pricePerCup: number;   // price player has set
-  helperCount: number;   // how many helpers hired (each runs 1 free shift/day)
-  shiftsRunByHelpers: number; // how many helper shifts used today (resets each day)
-  hasUmbrella: boolean;  // weather protection?
+  helperCount: number;   // how many helpers hired
+  shiftsRunByHelpers: number; // free shifts used today (resets each day)
+  helpersPaidToday: boolean; // $10/helper paid at start of day
+  hasUmbrella: boolean;
   totalEarned: number;
 }
 
-// ---- Lemon Tree ----
+// ---- Lemon Tree (individual tree instance) ----
+export interface LemonTreeInstance {
+  id: string;
+  plantedOnDay: number;  // which game day it was planted
+  daysOld: number;       // days since planted
+  matureAt: number;      // days until first harvest (3)
+  lastHarvestedDay: number; // day number of last harvest (0 = never)
+  lemonYield: number;    // lemons per harvest (10)
+  harvestEveryDays: number; // days between harvests (3)
+}
+
+// Legacy single-tree shape kept for migration compatibility
 export interface LemonTree {
   planted: boolean;
-  daysOld: number;       // days since planted
-  matureAt: number;      // day it becomes productive (e.g. 3)
-  lemonYield: number;    // lemons produced per harvest when mature
+  daysOld: number;
+  matureAt: number;
+  lemonYield: number;
 }
 
 // ---- Activity Tokens ----
@@ -169,7 +182,8 @@ export interface PlayerSave {
 
   // Businesses / assets
   lemonadeStand: LemonadeStand;
-  lemonTree: LemonTree;
+  lemonTree: LemonTree;       // legacy (kept for save compat)
+  lemonTrees: LemonTreeInstance[]; // multiple trees
 
   // Unlockable world features
   garden?: Garden;
