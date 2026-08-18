@@ -76,7 +76,17 @@ export default function Home() {
     const result = runLemonadeStand(save);
     if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
     const updated = applyStandResult(save, result);
-    setSave(updated);
+    // Check quest before updating state
+    const q1 = updated.quests.find(q => q.id === 'q1');
+    let finalSave = updated;
+    if (q1 && !q1.completed && result.cupsServed >= 1) {
+      finalSave = {
+        ...updated,
+        coins: updated.coins + 5,
+        quests: updated.quests.map(q => q.id === 'q1' ? { ...q, completed: true } : q),
+      };
+    }
+    setSave(finalSave);
 
     const weatherNote =
       save.weather === 'rainy' ? ' (fewer customers — it\'s rainy!)' :
@@ -90,18 +100,9 @@ export default function Home() {
     if (result.limitingFactor === 'supplies') {
       addLog(makeEntry('⚠️', 'Ran out of lemons before all customers were served!', 'neutral'));
     }
-
-    setSave(prev => {
-      if (!prev) return prev;
-      const q1 = prev.quests.find(q => q.id === 'q1');
-      if (!q1 || q1.completed || result.cupsServed < 1) return prev;
-      setTimeout(() => addLog(makeEntry('🎉', 'Quest complete: First Sale! +5 dollars bonus!', 'event')), 0);
-      return {
-        ...prev,
-        coins: prev.coins + 5,
-        quests: prev.quests.map(q => q.id === 'q1' ? { ...q, completed: true } : q),
-      };
-    });
+    if (q1 && !q1.completed && result.cupsServed >= 1) {
+      addLog(makeEntry('🎉', 'Quest complete: First Sale! +5 dollars bonus!', 'event'));
+    }
   }
 
   function handlePlantTree() {
@@ -303,10 +304,14 @@ export default function Home() {
     ));
     // Tree harvest ready notifications
     (updated.lemonTrees ?? []).forEach((tree, i) => {
-      const wasMature = (save.lemonTrees ?? [])[i]?.daysOld >= tree.matureAt - 1;
+      const prevTree = (save.lemonTrees ?? []).find(t => t.id === tree.id);
       const daysSince = tree.lastHarvestedDay === 0 ? tree.daysOld : updated.dayNumber - tree.lastHarvestedDay;
-      const isReady = tree.daysOld >= tree.matureAt && daysSince >= tree.harvestEveryDays;
-      if (isReady && !wasMature) {
+      const isReadyNow = tree.daysOld >= tree.matureAt && daysSince >= tree.harvestEveryDays;
+      const prevDaysSince = prevTree
+        ? (prevTree.lastHarvestedDay === 0 ? prevTree.daysOld : save.dayNumber - prevTree.lastHarvestedDay)
+        : 0;
+      const wasReadyBefore = prevTree && prevTree.daysOld >= prevTree.matureAt && prevDaysSince >= prevTree.harvestEveryDays;
+      if (isReadyNow && !wasReadyBefore) {
         addLog(makeEntry('🍋', `Tree #${i + 1} is ready to harvest! 10 free lemons waiting.`, 'event'));
       }
     });

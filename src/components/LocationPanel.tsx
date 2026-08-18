@@ -200,9 +200,9 @@ export default function LocationPanel({
                 </button>
               ))}
             </div>
-            {save.dreamGoal.saved > 0 && save.coins === 0 && (
+            {save.dreamGoal.saved > 0 && (
               <div className="mt-2">
-                <div className="text-xs text-gray-500 mb-1 text-center">Broke? Borrow from savings:</div>
+                <div className="text-xs text-gray-500 mb-1 text-center">Need cash? Take from savings:</div>
                 <div className="flex gap-2">
                   {[5, 10].map(amt => (
                     <button key={amt} onClick={() => onWithdraw(amt)} disabled={save.dreamGoal.saved < amt}
