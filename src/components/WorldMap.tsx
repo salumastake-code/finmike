@@ -74,9 +74,9 @@ export default function WorldMap({ save, activeLocation, onSelectLocation, weath
     ...(save.worldUnlocks?.bicycle ? [{
       id: 'stand2' as GameLocation,
       emoji: save.secondStand ? '🏪' : '🔒',
-      label: save.secondStand ? 'Stand #2' : 'Stand #2 🔒',
+      label: save.secondStand ? 'Stand #2' : 'Stand #2',
       x: 88, y: 68,
-      badge: save.secondStand && !save.secondStand.helperHiredToday && save.secondStand.supplyCount > 0 ? '!' : undefined,
+      badge: save.secondStand && (!save.secondStand.helperHiredToday || save.secondStand.supplyCount === 0) ? '!' : undefined,
     }] : []),
   ];
 

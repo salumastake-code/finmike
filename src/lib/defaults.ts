@@ -135,7 +135,7 @@ export function createNewSave(playerName: string, age: number, dreamGoalId: stri
     age,
     stage: 'grow',
 
-    coins: 20,        // starting dollars — enough to buy first supply batch
+    coins: 25,        // starting dollars — enough for supplies + a little buffer
     totalEarned: 0,
     totalSpent: 0,
 

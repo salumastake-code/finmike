@@ -57,7 +57,13 @@ export default function LocationPanel({
         <span className="text-xl">🥤</span>
         <div className="flex-1 text-left text-sm">
           Work a Shift
-          <div className="text-xs opacity-80 font-normal">Sell at {save.lemonadeStand.pricePerCup}💵/cup</div>
+          <div className="text-xs opacity-80 font-normal">
+            {save.weather === 'stormy'
+              ? '⛈️ Storm warning — expect 0 customers!'
+              : save.weather === 'rainy'
+              ? '🌧️ Rainy — fewer customers today'
+              : `Sell at ${save.lemonadeStand.pricePerCup}💵/cup`}
+          </div>
         </div>
         <span className="text-xs bg-black/20 rounded-lg px-2 py-1">1⚡</span>
       </button>
@@ -298,9 +304,9 @@ export default function LocationPanel({
     buzzybee: {
       name: 'Buzzy Bee 🐝', emoji: '🐝',
       lines: save.worldUnlocks?.bicycle ? [
-        "You got a bike! I've got a delivery route that's perfect for you. Come back tomorrow and we'll set it up!",
-        "With that bicycle, you could deliver for three neighborhoods. Think about it!",
-        "Speed matters in business. That bike is going to change everything for you.",
+        "Love the bike! On rainy days, the bakery needs lemon deliveries — check your Bike tab for runs!",
+        "Speed matters in business. That bicycle is already paying for itself, I bet!",
+        "I used to do everything myself too. Then I hired help. Best decision ever.",
       ] : [
         "The busier the better! I run three stands and I love every minute.",
         "If customers are slow, try lowering your price. More cups, more dollars!",

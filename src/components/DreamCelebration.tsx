@@ -55,6 +55,7 @@ const GRANDPA_QUOTES: Record<string, string> = {
   garden:    "A garden! You saved every dollar with patience, just like tending a seed. Now watch what grows.",
   puppy:     "A puppy! You stayed focused and kept saving even when it was tough. That little pup is lucky to have you.",
   treehouse: "A treehouse! You set a big goal and you reached it. That's something most grown-ups struggle with.",
+  bicycle:   "A bicycle! You know what this means? You can reach places you couldn't before. That's what saving up gets you — new possibilities.",
   default:   "I knew you could do it. You worked hard, you saved smart, and your piggy bank helped too. I'm proud of you.",
 };
 

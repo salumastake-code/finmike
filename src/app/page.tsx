@@ -166,7 +166,7 @@ export default function Home() {
     const result = withdrawFromDream(save, amount);
     if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
     setSave(result);
-    addLog(makeEntry('🐷', `Withdrew $${amount} from savings. Balance: $${result.dreamGoal.saved.toFixed(0)}`, 'neutral'));
+    addLog(makeEntry('💰', `Withdrew $${amount} from dream savings. Balance: $${result.dreamGoal.saved.toFixed(0)}`, 'neutral'));
   }
 
   function handleHarvestTree(treeId?: string) {
@@ -288,6 +288,9 @@ export default function Home() {
 
   function handleCatchButterfly() {
     if (!save || !save.treehouse) return;
+    if (!save.treehouse.decorations.includes('telescope')) {
+      addLog(makeEntry('❌', 'You need the Telescope add-on to spot butterflies!', 'bad')); return;
+    }
     const tokensLeft = save.tokens.total - save.tokens.spent;
     if (tokensLeft < 1) { addLog(makeEntry('❌', 'Not enough energy.', 'bad')); return; }
     const allButterflies = ['blue', 'yellow', 'purple', 'golden'];
@@ -369,11 +372,17 @@ export default function Home() {
     });
     setShowCelebration(false);
     addLog(makeEntry('✨', `New dream: ${goal.name}! ${goal.unlocksDesc}`, 'event'));
+    if (completedUnlock === 'garden') {
+      addLog(makeEntry('🌱', `Your garden is ready! Tap the 🌱 Garden tab to plant your first crop.`, 'event'));
+    }
     if (completedUnlock === 'pet') {
-      addLog(makeEntry('🐶', `Your puppy arrived! Tap the 🐶 Puppy tab to meet them and give them a name!`, 'event'));
+      addLog(makeEntry('🐶', `Your puppy arrived! Tap the 🐶 tab to meet them and give them a name!`, 'event'));
+    }
+    if (completedUnlock === 'treehouse') {
+      addLog(makeEntry('🏠', `Your treehouse is built! Tap the 🏠 tab to climb up and explore.`, 'event'));
     }
     if (completedUnlock === 'bicycle') {
-      addLog(makeEntry('🚲', `You got your bicycle! Buzzy Bee has a delivery quest for you — visit the 🐝 tab!`, 'event'));
+      addLog(makeEntry('🚲', `You got your bicycle! On rainy days, check the 🚲 Bike tab for bakery delivery runs!`, 'event'));
     }
   }
 
@@ -519,8 +528,10 @@ export default function Home() {
 
   function handleNextDay() {
     if (!save) return;
-    let updated = advanceDay(save);
-    updated = advanceGardenDay(updated);
+    // advanceGardenDay BEFORE advanceDay so storm damage uses TODAY's weather,
+    // not the new (tomorrow's) weather that advanceDay rolls
+    let updated = advanceGardenDay(save);
+    updated = advanceDay(updated);
     updated = advancePetDay(updated);
     updated = advanceBikeDay(updated);
     updated = advancePondDay(updated);
@@ -552,9 +563,12 @@ export default function Home() {
     }
     // Pet neglect / runaway
     if (save.pet && !updated.pet) {
-      addLog(makeEntry('💔', `${save.pet.name} ran away... They were too unhappy for too long. You can earn them back by saving for a new puppy.`, 'bad'));
-    } else if (updated.pet && !save.pet?.fed && !save.pet?.played) {
-      addLog(makeEntry('🐶', `${updated.pet.name} looks sad... Make sure to feed and play today!`, 'bad'));
+      addLog(makeEntry('💔', `${save.pet.name} ran away... They were too unhappy for too long. You can save up for a new puppy.`, 'bad'));
+    } else if (updated.pet && updated.pet.daysNeglected > 0) {
+      const sadMsg = updated.pet.daysNeglected >= 2
+        ? `${updated.pet.name} is really sad — ${updated.pet.daysNeglected} days without care! Feed and play today! 🐾`
+        : `${updated.pet.name} misses you. Make sure to feed and play today!`;
+      addLog(makeEntry('🐶', sadMsg, 'bad'));
     }
 
     if (updated.dreamGoal.interestEarnedToday && updated.dreamGoal.interestEarnedToday > 0) {
@@ -569,11 +583,13 @@ export default function Home() {
     if (updated.piggyBank?.interestEarnedToday && updated.piggyBank.interestEarnedToday > 0) {
       addLog(makeEntry('🐷', `Piggy bank: +$${updated.piggyBank.interestEarnedToday.toFixed(2)} interest! Balance: $${updated.piggyBank.balance.toFixed(2)}`, 'good'));
     }
-    if (updated.dreamGoal.unlocked && !save.dreamGoal.unlocked) {
+    // Only fire celebration if dream was unlocked by interest overnight (not already celebrating)
+    if (updated.dreamGoal.unlocked && !save.dreamGoal.unlocked && !showCelebration) {
       setShowCelebration(true);
+      addLog(makeEntry('🌙', `While you slept, interest pushed your savings over the goal! Your dream is unlocked!`, 'event'));
     }
     // Nudge player toward home after ending day
-    setActiveLocation('stand');
+    setActiveLocation('home');
   }
 
   // ---- Render ----
@@ -595,7 +611,10 @@ export default function Home() {
       {showCelebration && save && (
         <DreamCelebration
           completedGoal={save.dreamGoal}
-          unlockedGoals={Object.entries(save.worldUnlocks ?? {}).filter(([,v]) => v).map(([k]) => k)}
+          unlockedGoals={Object.entries(save.worldUnlocks ?? {}).filter(([,v]) => v).map(([k]) =>
+            // worldUnlocks uses 'pet' but NEXT_GOALS uses 'puppy' — remap
+            k === 'pet' ? 'puppy' : k
+          )}
           onPickNext={handlePickNextGoal}
         />
       )}
