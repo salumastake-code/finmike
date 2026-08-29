@@ -1,12 +1,12 @@
 'use client';
 import type { PlayerSave } from '@/types/game';
 
-type Location = 'stand' | 'tree' | 'home' | 'tortoise' | 'buzzybee' | 'wisefox' | 'garden' | 'pet' | 'treehouse';
+type GameLocation = 'stand' | 'tree' | 'home' | 'tortoise' | 'buzzybee' | 'wisefox' | 'garden' | 'pet' | 'treehouse' | 'grandpa' | 'bike' | 'pond' | 'stand2';
 
 interface Props {
   save: PlayerSave;
-  activeLocation: Location | null;
-  onSelectLocation: (loc: Location) => void;
+  activeLocation: GameLocation | null;
+  onSelectLocation: (loc: GameLocation) => void;
   weather: PlayerSave['weather'];
 }
 
@@ -30,7 +30,7 @@ export default function WorldMap({ save, activeLocation, onSelectLocation, weath
     save.lemonTree.daysOld >= save.lemonTree.matureAt ? '🌳' : '🌱';
 
   const locations: Array<{
-    id: Location;
+    id: GameLocation;
     emoji: string;
     label: string;
     x: number; // % from left
@@ -49,23 +49,39 @@ export default function WorldMap({ save, activeLocation, onSelectLocation, weath
     { id: 'buzzybee',  emoji: '🐝', label: 'Buzzy Bee',    x: 80, y: 62 },
     // Unlockable locations
     ...(save.worldUnlocks?.garden ? [{
-      id: 'garden' as Location, emoji: '🌱', label: 'Garden',
+      id: 'garden' as GameLocation, emoji: '🌱', label: 'Garden',
       x: 8, y: 50,
       badge: save.garden?.plots.some(p => !p.harvested && !p.damaged && (save.dayNumber - p.plantedDay) >= p.matureAt) ? '!' : undefined,
     }] : []),
     ...(save.worldUnlocks?.pet ? [{
-      id: 'pet' as Location, emoji: '🐶', label: save.pet?.name || 'Puppy',
+      id: 'pet' as GameLocation, emoji: '🐶', label: save.pet?.name || 'Puppy',
       x: 50, y: 42,
       badge: save.pet && (!save.pet.fed || !save.pet.played) ? '!' : undefined,
     }] : []),
     ...(save.worldUnlocks?.treehouse ? [{
-      id: 'treehouse' as Location, emoji: '🏠', label: 'Treehouse',
+      id: 'treehouse' as GameLocation, emoji: '🏠', label: 'Treehouse',
       x: 88, y: 38,
+    }] : []),
+    ...(save.worldUnlocks?.bicycle ? [{
+      id: 'bike' as GameLocation, emoji: '🚲', label: 'Bike',
+      x: 30, y: 85,
+    }] : []),
+    ...(save.worldUnlocks?.bicycle ? [{
+      id: 'pond' as GameLocation, emoji: '🎣', label: 'Pond',
+      x: 65, y: 85,
+      badge: save.pond && save.pond.collectibles.length === 5 && !save.secondStand ? '!' : undefined,
+    }] : []),
+    ...(save.worldUnlocks?.bicycle ? [{
+      id: 'stand2' as GameLocation,
+      emoji: save.secondStand ? '🏪' : '🔒',
+      label: save.secondStand ? 'Stand #2' : 'Stand #2 🔒',
+      x: 88, y: 68,
+      badge: save.secondStand && !save.secondStand.helperHiredToday && save.secondStand.supplyCount > 0 ? '!' : undefined,
     }] : []),
   ];
 
   return (
-    <div className={`relative w-full h-56 bg-gradient-to-b ${WEATHER_BG[weather] || WEATHER_BG.sunny} overflow-hidden`}>
+    <div className={`relative w-full bg-gradient-to-b ${WEATHER_BG[weather] || WEATHER_BG.sunny} overflow-hidden`} style={{ height: save.worldUnlocks?.bicycle ? '17rem' : '14rem' }}>
 
       {/* Animated weather overlay */}
       {weather !== 'sunny' && (

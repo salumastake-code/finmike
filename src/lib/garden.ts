@@ -100,7 +100,6 @@ export function sellAtMarket(
 
   const tokensLeft = save.tokens.total - save.tokens.spent;
   if (tokensLeft < TOKEN_COST_GARDEN) return { error: 'Not enough energy to go to the market.' };
-
   const revenue = qty * CROPS[cropId].sellPrice;
 
   return {

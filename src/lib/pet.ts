@@ -24,8 +24,7 @@ export function initPet(name: string): Pet {
 export function feedPet(save: PlayerSave): PlayerSave | { error: string } {
   if (!save.pet) return { error: 'No pet yet!' };
   if (save.pet.fed) return { error: `${save.pet.name} already ate today!` };
-  const tokensLeft = save.tokens.total - save.tokens.spent;
-  if (tokensLeft < TOKEN_COST_PET) return { error: 'Not enough energy to care for your pet.' };
+  if (save.tokens.spent + TOKEN_COST_PET > save.tokens.total) return { error: 'Not enough energy to care for your pet.' };
   if (save.coins < 2) return { error: 'Pet food costs $2. You don\'t have enough.' };
 
   return {
@@ -45,8 +44,7 @@ export function feedPet(save: PlayerSave): PlayerSave | { error: string } {
 export function playWithPet(save: PlayerSave): PlayerSave | { error: string } {
   if (!save.pet) return { error: 'No pet yet!' };
   if (save.pet.played) return { error: `${save.pet.name} is tired from playing already!` };
-  const tokensLeft = save.tokens.total - save.tokens.spent;
-  if (tokensLeft < TOKEN_COST_PET) return { error: 'Not enough energy to play today.' };
+  if (save.tokens.spent + TOKEN_COST_PET > save.tokens.total) return { error: 'Not enough energy to play today.' };
 
   return {
     ...save,

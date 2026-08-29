@@ -7,6 +7,7 @@ import type { PlayerSave } from '@/types/game';
 export const DREAM_GOALS = [
   { id: 'garden',    name: 'Garden Plot', emoji: '🌱', cost: 60,  unlocks: 'garden',    unlocksDesc: 'Grow crops and sell them at the market!' },
   { id: 'puppy',     name: 'Puppy',       emoji: '🐶', cost: 100, unlocks: 'pet',       unlocksDesc: 'A loyal friend who lives at your home.' },
+  { id: 'bicycle',   name: 'Bicycle',     emoji: '🚲', cost: 80,  unlocks: 'bicycle',   unlocksDesc: 'Get around faster — deliveries, races, and the pond!' },
   { id: 'treehouse', name: 'Treehouse',   emoji: '🌳', cost: 160, unlocks: 'treehouse', unlocksDesc: 'A secret hangout spot with new quests.' },
 ];
 
@@ -82,11 +83,50 @@ export const INITIAL_QUESTS = [
   },
 ];
 
+// ---- Grandpa's 5 named lessons (text + soft question format) ----
+export const GRANDPA_LESSONS = [
+  {
+    id: 'lesson_profit',
+    title: 'Where Did the Money Go?',
+    concept: 'profit',
+    completed: false,
+    skillReward: 3,
+  },
+  {
+    id: 'lesson_saving',
+    title: 'Now or Later?',
+    concept: 'saving',
+    completed: false,
+    skillReward: 3,
+  },
+  {
+    id: 'lesson_opportunity_cost',
+    title: 'Five Suns, Lots of Choices',
+    concept: 'opportunity_cost',
+    completed: false,
+    skillReward: 3,
+  },
+  {
+    id: 'lesson_hiring',
+    title: 'Do You Have to Do Everything Yourself?',
+    concept: 'hiring',
+    completed: false,
+    skillReward: 3,
+  },
+  {
+    id: 'lesson_diversification',
+    title: 'What If It Rains?',
+    concept: 'diversification',
+    completed: false,
+    skillReward: 3,
+  },
+];
+
 export function createNewSave(playerName: string, age: number, dreamGoalId: string): PlayerSave {
   const goal = DREAM_GOALS.find(g => g.id === dreamGoalId) || DREAM_GOALS[0];
 
   return {
-    version: 1,
+    version: 2,
     createdAt: new Date().toISOString(),
     lastPlayedAt: new Date().toISOString(),
 
@@ -99,11 +139,19 @@ export function createNewSave(playerName: string, age: number, dreamGoalId: stri
     totalEarned: 0,
     totalSpent: 0,
 
+    piggyBank: {
+      balance: 0,
+      interestEarnedToday: 0,
+      totalInterestEarned: 0,
+    },
+
+    skill: 0,
+
     dayNumber: 1,
     season: 'spring',
     weather: 'sunny',
 
-    tokens: { total: 5, spent: 0, hoursElapsed: 0 },
+    tokens: { total: 5, spent: 0 },
 
     lifeMeters: {
       financialSecurity: 30,
@@ -123,6 +171,8 @@ export function createNewSave(playerName: string, age: number, dreamGoalId: stri
       unlocked: false,
     },
 
+    grandpaLessons: GRANDPA_LESSONS,
+
     worldUnlocks: {
       garden: false,
       pet: false,
@@ -136,6 +186,7 @@ export function createNewSave(playerName: string, age: number, dreamGoalId: stri
       pricePerCup: 1,
       helperShiftsToday: 0,
       hasUmbrella: false,
+      hasUpgrade: false,
       totalEarned: 0,
     },
 

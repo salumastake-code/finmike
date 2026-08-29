@@ -2,26 +2,30 @@
 import type { PlayerSave } from '@/types/game';
 import { COSTS } from '@/lib/economy';
 
-type Location = 'stand' | 'tree' | 'home' | 'tortoise' | 'buzzybee' | 'wisefox';
+type GameLocation = 'stand' | 'tree' | 'home' | 'tortoise' | 'buzzybee' | 'wisefox';
 
 interface Props {
-  location: Location;
+  location: GameLocation;
   save: PlayerSave;
   onBuySupplies: () => void;
   onRunStand: () => void;
   onHireHelper: () => void;
   onSetPrice: (p: number) => void;
+  onBuyStandUpgrade: () => void;
   onPlantTree: () => void;
   onHarvestTree: (treeId?: string) => void;
   onContribute: (amt: number) => void;
   onWithdraw: (amt: number) => void;
+  onDepositPiggyBank: (amt: number) => void;
+  onWithdrawPiggyBank: (amt: number) => void;
   onNextDay: () => void;
 }
 
 export default function LocationPanel({
   location, save,
-  onBuySupplies, onRunStand, onHireHelper, onSetPrice,
-  onPlantTree, onHarvestTree, onContribute, onWithdraw, onNextDay,
+  onBuySupplies, onRunStand, onHireHelper, onSetPrice, onBuyStandUpgrade,
+  onPlantTree, onHarvestTree, onContribute, onWithdraw,
+  onDepositPiggyBank, onWithdrawPiggyBank, onNextDay,
 }: Props) {
   const tokensLeft = save.tokens.total - save.tokens.spent;
   const trees = save.lemonTrees ?? [];
@@ -44,7 +48,7 @@ export default function LocationPanel({
         className="w-full flex items-center gap-3 p-3 bg-yellow-400 hover:bg-yellow-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-colors">
         <span className="text-xl">🍋</span>
         <div className="flex-1 text-left text-sm">Buy Supplies<div className="text-xs opacity-80 font-normal">{COSTS.SUPPLY_COST} dollars → {COSTS.LEMONS_PER_BATCH} lemons</div></div>
-        <span className="text-xs bg-black/20 rounded-lg px-2 py-1">{COSTS.TOKEN_COST_BUY_SUPPLIES}⚡</span>
+        <span className="text-xs bg-black/20 rounded-lg px-2 py-1">1⚡</span>
       </button>
 
       <button onClick={onRunStand}
@@ -55,7 +59,7 @@ export default function LocationPanel({
           Work a Shift
           <div className="text-xs opacity-80 font-normal">Sell at {save.lemonadeStand.pricePerCup}💵/cup</div>
         </div>
-        <span className="text-xs bg-black/20 rounded-lg px-2 py-1">{COSTS.TOKEN_COST_RUN_STAND}⚡</span>
+        <span className="text-xs bg-black/20 rounded-lg px-2 py-1">1⚡</span>
       </button>
 
       {/* Price */}
@@ -92,6 +96,25 @@ export default function LocationPanel({
           👦 {save.lemonadeStand.helperShiftsToday} hired shift{save.lemonadeStand.helperShiftsToday > 1 ? 's' : ''} today
         </div>
       )}
+
+      {/* Stand Upgrade */}
+      {save.lemonadeStand.hasUpgrade ? (
+        <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-xl text-xs text-green-700 font-medium">
+          <span>✅</span>
+          <span>Stand upgraded — more customers, better margins!</span>
+        </div>
+      ) : save.dayNumber >= 5 ? (
+        <button onClick={onBuyStandUpgrade}
+          disabled={save.coins < COSTS.STAND_UPGRADE_COST}
+          className="w-full flex items-center gap-3 p-3 rounded-xl border-2 border-dashed border-amber-300 hover:border-amber-400 hover:bg-amber-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+          <span className="text-xl">🔨</span>
+          <div className="flex-1 text-left text-sm font-bold text-amber-700">
+            Upgrade Your Stand
+            <div className="text-xs font-normal text-amber-500">Better sign + setup → more customers, charge up to $4 without losing as many</div>
+          </div>
+          <div className="text-xs bg-amber-100 text-amber-600 rounded-lg px-2 py-1 font-bold">${COSTS.STAND_UPGRADE_COST}</div>
+        </button>
+      ) : null}
     </div>
   );
 
@@ -157,7 +180,7 @@ export default function LocationPanel({
           Plant {trees.length > 0 ? 'Another' : 'a'} Lemon Tree
           <div className="text-xs opacity-80 font-normal">$15 · grows 3 days · 10 lemons every 3 days</div>
         </div>
-        <span className="text-xs bg-black/20 rounded-lg px-2 py-1">{COSTS.TOKEN_COST_TEND_TREE}⚡</span>
+        <span className="text-xs bg-black/20 rounded-lg px-2 py-1">1⚡</span>
       </button>
 
       <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700">
@@ -189,17 +212,18 @@ export default function LocationPanel({
           <div className="bg-amber-400 h-3 rounded-full transition-all"
             style={{ width: `${Math.min(100,(save.dreamGoal.saved/save.dreamGoal.cost)*100)}%` }} />
         </div>
-        <div className="text-xs text-amber-500 mb-2">🐷 Earns 1% interest every night</div>
+        <div className="text-xs text-amber-500 mb-2">⭐ Earns 0.25% interest every night</div>
         {!save.dreamGoal.unlocked && (
           <>
             <div className="flex gap-2">
               {[5, 10, 25].map(amt => (
-                <button key={amt} onClick={() => onContribute(amt)} disabled={save.coins < amt}
+                <button key={amt} onClick={() => onContribute(amt)} disabled={save.coins < amt || tokensLeft < 1}
                   className="flex-1 text-xs bg-amber-400 hover:bg-amber-500 disabled:opacity-40 text-white font-bold py-1.5 rounded-xl">
                   Save {amt} 💵
                 </button>
               ))}
             </div>
+            <div className="text-xs text-center text-amber-400 mt-0.5">1⚡ to visit the bank</div>
             {save.dreamGoal.saved > 0 && (
               <div className="mt-2">
                 <div className="text-xs text-gray-500 mb-1 text-center">Need cash? Take from savings:</div>
@@ -216,6 +240,42 @@ export default function LocationPanel({
           </>
         )}
         {save.dreamGoal.unlocked && <div className="text-center text-green-700 font-bold">🎉 Dream Reached!</div>}
+      </div>
+
+      {/* Piggy Bank */}
+      <div className="bg-pink-50 border-2 border-pink-200 rounded-xl p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-2xl">🐷</span>
+          <div className="flex-1">
+            <div className="text-sm font-bold text-pink-900">Piggy Bank</div>
+            <div className="text-xs text-pink-500">
+              ${(save.piggyBank?.balance ?? 0).toFixed(2)} saved · +0.25% daily interest
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-2 mb-2">
+          {[5, 10, 20].map(amt => (
+            <button key={amt} onClick={() => onDepositPiggyBank(amt)} disabled={save.coins < amt}
+              className="flex-1 text-xs bg-pink-400 hover:bg-pink-500 disabled:opacity-40 text-white font-bold py-1.5 rounded-xl">
+              +{amt}💵
+            </button>
+          ))}
+        </div>
+        {(save.piggyBank?.balance ?? 0) > 0 && (
+          <div className="flex gap-2">
+            {[5, 10].map(amt => (
+              <button key={amt} onClick={() => onWithdrawPiggyBank(amt)} disabled={(save.piggyBank?.balance ?? 0) < amt}
+                className="flex-1 text-xs bg-gray-200 hover:bg-gray-300 disabled:opacity-40 text-gray-600 font-bold py-1.5 rounded-xl">
+                Take {amt}💵
+              </button>
+            ))}
+          </div>
+        )}
+        {(save.piggyBank?.totalInterestEarned ?? 0) > 0 && (
+          <div className="text-xs text-pink-400 text-center mt-1">
+            💰 Total interest earned: ${(save.piggyBank.totalInterestEarned).toFixed(2)}
+          </div>
+        )}
       </div>
 
       <button onClick={onNextDay}
@@ -260,7 +320,8 @@ export default function LocationPanel({
   const neighbor = neighbors[location];
   if (!neighbor) return null;
 
-  const line = neighbor.lines[Math.floor(Math.random() * neighbor.lines.length)];
+  // Seeded by day so the same quote shows all day, but changes tomorrow
+  const line = neighbor.lines[save.dayNumber % neighbor.lines.length];
 
   return (
     <div className="space-y-3">

@@ -8,13 +8,23 @@ export type Weather = 'sunny' | 'cloudy' | 'rainy' | 'stormy';
 
 export type Season = 'spring' | 'summer' | 'fall' | 'winter';
 
+// ---- Mood (replaces numeric Happiness in Stage 1 UI) ----
+export type Mood = 'great' | 'good' | 'okay' | 'sad';
+
 // ---- Life Meters ----
 export interface LifeMeters {
   financialSecurity: number; // 0–100
   health: number;
-  happiness: number;
-  relationships: number;
+  happiness: number;         // 0–100 internal; converted to Mood for display
+  relationships: number;     // 0–100
   futureSecurity: number;
+}
+
+// ---- Piggy Bank (separate from Dream savings) ----
+export interface PiggyBank {
+  balance: number;           // current balance
+  interestEarnedToday: number; // shown as daily drip in event log
+  totalInterestEarned: number;
 }
 
 // ---- Dream Goal ----
@@ -70,7 +80,7 @@ export interface Treehouse {
   visited: boolean;      // ever visited?
   questGiven: boolean;   // grandpa quest given?
   butterflies: string[]; // collected butterfly ids
-  decorations: string[];
+  decorations: string[]; // 'string_lights' | 'telescope' | 'flag' | 'rug'
 }
 
 // ---- Lemonade Stand ----
@@ -80,7 +90,18 @@ export interface LemonadeStand {
   pricePerCup: number;   // price player has set
   helperShiftsToday: number; // paid helper shifts run today ($5 each, no energy cost)
   hasUmbrella: boolean;
+  hasUpgrade: boolean;   // $40 stand upgrade (better appearance → more customers)
   totalEarned: number;
+}
+
+// ---- Second Lemonade Stand ----
+export interface SecondStand {
+  unlockedOnDay: number;   // day it was unlocked
+  supplyCount: number;     // lemons allocated to this stand
+  pricePerCup: number;
+  helperHiredToday: boolean; // player must actively hire each day
+  totalEarned: number;
+  totalDaysRun: number;
 }
 
 // ---- Lemon Tree (individual tree instance) ----
@@ -104,9 +125,50 @@ export interface LemonTree {
 
 // ---- Activity Tokens ----
 export interface ActivityTokens {
-  total: number;         // tokens available this day
+  total: number;         // tokens available this day (always 5)
   spent: number;         // tokens used today
-  hoursElapsed: number;  // hours elapsed today (day starts at 7am, ends at 9pm = 14hrs max)
+}
+
+// ---- Skill & Grandpa Lessons ----
+export interface GrandpaLesson {
+  id: string;
+  title: string;
+  concept: string;        // e.g. 'profit' | 'saving' | 'opportunity_cost' | 'hiring' | 'diversification'
+  completed: boolean;
+  skillReward: number;    // 3 for named lessons, 1 for simple sessions
+}
+
+// ---- Bike ----
+export type BikeUpgrade = 'tires' | 'brakes' | 'paint' | 'basket';
+
+export interface BikeUpgradeInfo {
+  id: BikeUpgrade;
+  name: string;
+  emoji: string;
+  cost: number;
+  desc: string;
+  raceBonus: number;       // added to race score
+  deliveryBonus: boolean;  // basket lets you carry 10 lemons instead of 5
+}
+
+export interface Bike {
+  upgrades: BikeUpgrade[];
+  racesEntered: number;
+  racesWon: number;
+  lastRaceDay: number;     // day number of last race (race is weekly = every 7 days)
+  lastDeliveryDay: number; // day number of last bakery delivery
+  deliveriesToday: number;   // deliveries done today (resets each day)
+  totalDeliveries: number;   // lifetime total
+}
+
+// ---- Pond & Collectibles ----
+export type CollectibleId = 'blue_feather' | 'smooth_stone' | 'old_coin' | 'rare_fish' | 'wildflower';
+
+export interface Pond {
+  fishingTripsToday: number;
+  totalFishCaught: number;
+  collectibles: CollectibleId[];  // grandpa's 5-item quest items found
+  lastFishingDay: number;
 }
 
 // ---- Neighbor / Mentor Character ----
@@ -168,6 +230,12 @@ export interface PlayerSave {
   totalEarned: number;
   totalSpent: number;
 
+  // Piggy Bank (separate from dream savings)
+  piggyBank: PiggyBank;
+
+  // Skill (0–100, persistent across all stages)
+  skill: number;
+
   // World
   dayNumber: number;
   season: Season;
@@ -178,6 +246,9 @@ export interface PlayerSave {
   lifeMeters: LifeMeters;
   dreamGoal: DreamGoal;
 
+  // Grandpa lessons
+  grandpaLessons: GrandpaLesson[];
+
   // Businesses / assets
   lemonadeStand: LemonadeStand;
   lemonTree: LemonTree;       // legacy (kept for save compat)
@@ -187,12 +258,17 @@ export interface PlayerSave {
   garden?: Garden;
   pet?: Pet;
   treehouse?: Treehouse;
+  bike?: Bike;
+  pond?: Pond;
 
   // Characters
   neighbors: Neighbor[];
 
   // Quests
   quests: Quest[];
+
+  // Second lemonade stand (unlocked via Grandpa quest)
+  secondStand?: SecondStand;
 
   // World unlocks
   worldUnlocks: WorldUnlocks;

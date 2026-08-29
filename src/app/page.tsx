@@ -8,10 +8,17 @@ import {
   runLemonadeStand, applyStandResult,
   buySupplies, plantLemonTree, harvestLemonTree, harvestLemonTreeById,
   contributeToDream, withdrawFromDream, advanceDay,
-  weatherDemandMultiplier, spendToken, hireForShift, type HireShiftResult,
+  weatherDemandMultiplier, hireForShift, type HireShiftResult,
+  depositToPiggyBank, withdrawFromPiggyBank, gainSkill, getMood,
+  unlockSecondStand, stockSecondStand, setSecondStandPrice,
+  hireSecondStandHelper, advanceSecondStandDay, type SecondStandResult,
+  buyStandUpgrade,
 } from '@/lib/economy';
 import { plantCrop, harvestPlot, sellAtMarket, initGarden, advanceGardenDay, CROPS } from '@/lib/garden';
 import { feedPet, playWithPet, initPet, advancePetDay } from '@/lib/pet';
+import { runDelivery, runRace, buyBikeUpgrade, initBike, advanceBikeDay, type RaceResult } from '@/lib/bike';
+import { goFishing, initPond, advancePondDay, COLLECTIBLES, ALL_COLLECTIBLES } from '@/lib/pond';
+import type { FishingResult } from '@/lib/pond';
 import type { CropId } from '@/types/game';
 
 import Onboarding from '@/components/Onboarding';
@@ -19,14 +26,17 @@ import GrandpaIntro from '@/components/GrandpaIntro';
 import DreamCelebration, { NEXT_GOALS } from '@/components/DreamCelebration';
 import GardenPanel from '@/components/GardenPanel';
 import PetPanel from '@/components/PetPanel';
-import TreehousePanel from '@/components/TreehousePanel';
+import TreehousePanel, { visitHappinessBonus } from '@/components/TreehousePanel';
+import GrandpaPanel from '@/components/GrandpaPanel';
+import BikePanel from '@/components/BikePanel';
+import PondPanel from '@/components/PondPanel';
+import SecondStandPanel from '@/components/SecondStandPanel';
 import WorldMap from '@/components/WorldMap';
 import LocationPanel from '@/components/LocationPanel';
-import DayClock from '@/components/DayClock';
 import EventLog from '@/components/EventLog';
 import WorldCodeModal from '@/components/WorldCodeModal';
 
-type Location = 'stand' | 'tree' | 'home' | 'tortoise' | 'buzzybee' | 'wisefox' | 'garden' | 'pet' | 'treehouse';
+type GameLocation = 'stand' | 'tree' | 'home' | 'tortoise' | 'buzzybee' | 'wisefox' | 'garden' | 'pet' | 'treehouse' | 'grandpa' | 'bike' | 'pond' | 'stand2';
 
 let logCounter = 0;
 function makeEntry(emoji: string, text: string, type: LogEntry['type']): LogEntry {
@@ -40,7 +50,7 @@ export default function Home() {
   const [showIntro, setShowIntro] = useState(false);
   const [showWorldCode, setShowWorldCode] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
-  const [activeLocation, setActiveLocation] = useState<Location | null>('stand');
+  const [activeLocation, setActiveLocation] = useState<GameLocation | null>('stand');
 
   useEffect(() => {
     const existing = loadSave();
@@ -142,6 +152,15 @@ export default function Home() {
     }
   }
 
+  function handleBuyStandUpgrade() {
+    if (!save) return;
+    const result = buyStandUpgrade(save);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    setSave(result);
+    addLog(makeEntry('🏪', 'Stand upgraded! Better sign, nicer setup — more customers will stop by, and you can charge more without losing as many.', 'event'));
+    addLog(makeEntry('💡', 'Grandpa says: "A little investment in your business can pay for itself many times over."', 'neutral'));
+  }
+
   function handleWithdrawFromDream(amount: number) {
     if (!save) return;
     const result = withdrawFromDream(save, amount);
@@ -219,15 +238,37 @@ export default function Home() {
 
   // ---- Treehouse handlers ----
   function handleVisitTreehouse() {
+    // First-time visit — marks treehouse as visited, costs 1⚡, gives base happiness
     if (!save) return;
     const tokensLeft = save.tokens.total - save.tokens.spent;
     if (tokensLeft < 1) { addLog(makeEntry('❌', 'Not enough energy to climb up today.', 'bad')); return; }
+    const decorations = save.treehouse?.decorations ?? [];
+    const happinessGain = visitHappinessBonus(decorations);
     setSave({
       ...save,
-      tokens: spendToken(save.tokens, 'visit_treehouse') ?? save.tokens,
-      treehouse: { visited: true, questGiven: true, butterflies: save.treehouse?.butterflies ?? [], decorations: save.treehouse?.decorations ?? [] },
+      tokens: { ...save.tokens, spent: save.tokens.spent + 1 },
+      lifeMeters: { ...save.lifeMeters, happiness: Math.min(100, save.lifeMeters.happiness + happinessGain) },
+      treehouse: { visited: true, questGiven: true, butterflies: save.treehouse?.butterflies ?? [], decorations },
     });
     addLog(makeEntry('🌳', 'You climbed up to your treehouse! Grandpa was right — it\'s magical up here.', 'event'));
+  }
+
+  function handleHangOutTreehouse() {
+    // Repeatable daily hang-out — costs 1⚡, gives decoration-based happiness
+    if (!save || !save.treehouse) return;
+    const tokensLeft = save.tokens.total - save.tokens.spent;
+    if (tokensLeft < 1) { addLog(makeEntry('❌', 'Not enough energy to head up today.', 'bad')); return; }
+    const decorations = save.treehouse.decorations ?? [];
+    const happinessGain = visitHappinessBonus(decorations);
+    setSave({
+      ...save,
+      tokens: { ...save.tokens, spent: save.tokens.spent + 1 },
+      lifeMeters: { ...save.lifeMeters, happiness: Math.min(100, save.lifeMeters.happiness + happinessGain) },
+    });
+    const decoNote = decorations.length > 0
+      ? ` Your ${decorations.length} decoration${decorations.length > 1 ? 's' : ''} made it extra cozy.`
+      : ' Add decorations to make it even better!';
+    addLog(makeEntry('🌳', `Hung out in the treehouse. +${happinessGain} happiness.${decoNote}`, 'good'));
   }
 
   function handleBuyAddon(addonId: string, cost: number) {
@@ -235,7 +276,7 @@ export default function Home() {
     if (save.coins < cost) { addLog(makeEntry('❌', `You need $${cost} for that.`, 'bad')); return; }
     if (!save.treehouse) return;
     if (save.treehouse.decorations.includes(addonId)) { addLog(makeEntry('❌', 'Already installed!', 'bad')); return; }
-    const addonNames: Record<string, string> = { telescope: '🔭 Telescope', rope_swing: '🪢 Rope Swing', hammock: '🌙 Hammock', flag: '🚩 Flag', lantern: '🏮 Lantern' };
+    const addonNames: Record<string, string> = { string_lights: '✨ String Lights', telescope: '🔭 Telescope', flag: '🚩 Flag', rug: '🟫 Cozy Rug' };
     setSave({
       ...save,
       coins: save.coins - cost,
@@ -258,7 +299,7 @@ export default function Home() {
     const names: Record<string, string> = { blue: 'Blue Morpho 🦋', yellow: 'Yellow Swallowtail 🌼', purple: 'Purple Emperor 💜', golden: 'Golden Wing ✨' };
     setSave({
       ...save,
-      tokens: spendToken(save.tokens, 'catch_butterfly') ?? save.tokens,
+      tokens: { ...save.tokens, spent: save.tokens.spent + 1 },
       treehouse: { ...save.treehouse, butterflies: caught ? [...save.treehouse.butterflies, caught] : save.treehouse.butterflies },
     });
     if (caught) {
@@ -283,7 +324,9 @@ export default function Home() {
           const gardenInit = completedUnlock === 'garden' && !prev.garden ? initGarden() : prev.garden;
           const treeInit = completedUnlock === 'treehouse' && !prev.treehouse
             ? { visited: false, questGiven: false, butterflies: [], decorations: [] } : prev.treehouse;
-          return { ...prev, worldUnlocks: newUnlocks, garden: gardenInit, treehouse: treeInit };
+          const bikeInitD = completedUnlock === 'bicycle' && !prev.bike ? initBike() : prev.bike;
+          const pondInitD = completedUnlock === 'bicycle' && !prev.pond ? initPond() : prev.pond;
+          return { ...prev, worldUnlocks: newUnlocks, garden: gardenInit, treehouse: treeInit, bike: bikeInitD, pond: pondInitD };
         });
       }
       return;
@@ -303,14 +346,17 @@ export default function Home() {
     const gardenInit = completedUnlock === 'garden' && !save.garden ? initGarden() : save.garden;
     const treeInit = completedUnlock === 'treehouse' && !save.treehouse
       ? { visited: false, questGiven: false, butterflies: [], decorations: [] } : save.treehouse;
+    const bikeInit = completedUnlock === 'bicycle' && !save.bike ? initBike() : save.bike;
+    const pondInit = completedUnlock === 'bicycle' && !save.pond ? initPond() : save.pond;
     // Pet: unlock adds the tab but doesn't init pet yet (player names it on first visit)
-    // Just ensure worldUnlocks.pet is set — PetPanel handles the rest
 
     setSave({
       ...save,
       worldUnlocks: newWorldUnlocks,
       garden: gardenInit,
       treehouse: treeInit,
+      bike: bikeInit,
+      pond: pondInit,
       dreamGoal: {
         id: goal.id,
         name: goal.name,
@@ -331,11 +377,154 @@ export default function Home() {
     }
   }
 
+  // ---- Second stand handlers ----
+  function handleClaimSecondStand() {
+    if (!save) return;
+    const result = unlockSecondStand(save);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    setSave(result);
+    addLog(makeEntry('🏪', 'Grandpa helped you open Stand #2! You can\'t be in two places at once — hire a helper to run it.', 'event'));
+    addLog(makeEntry('💡', 'Remember: hire a helper each day or the stand earns nothing. That\'s the cost of delegation!', 'neutral'));
+  }
+
+  function handleStockSecondStand(lemons: number) {
+    if (!save) return;
+    const result = stockSecondStand(save, lemons);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    setSave(result);
+    addLog(makeEntry('🍋', `Moved ${lemons} lemons to Stand #2.`, 'neutral'));
+  }
+
+  function handleHireSecondStandHelper(): SecondStandResult | { error: string } {
+    if (!save) return { error: 'No save.' };
+    const result = hireSecondStandHelper(save);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return result; }
+    const r = result as SecondStandResult;
+    setSave(r.save);
+    if (r.isBadShift) {
+      addLog(makeEntry('👦', `Rough shift at Stand #2 — helper sold ${r.cupsServed} cups for $${r.revenue}. ${r.profit < 0 ? `Lost $${Math.abs(r.profit)} after wages.` : 'Barely covered the $5.'}`, 'bad'));
+    } else {
+      addLog(makeEntry('👦', `Stand #2 helper sold ${r.cupsServed} cups → $${r.revenue} revenue, $${r.profit} profit after their $5 wage.`, 'good'));
+    }
+    return r;
+  }
+
+  function handleSetSecondStandPrice(price: number) {
+    if (!save) return;
+    setSave(setSecondStandPrice(save, price));
+  }
+
+  // ---- Bike handlers ----
+  function handleDelivery() {
+    if (!save) return;
+    const result = runDelivery(save);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    const lemonCost = save.bike?.upgrades.includes('basket') ? 10 : 5;
+    const pay = save.bike?.upgrades.includes('basket') ? 20 : 10;
+    setSave(result);
+    addLog(makeEntry('🚲', `Delivered ${lemonCost} lemons to the bakery — earned $${pay}!`, 'good'));
+  }
+
+  function handleRace(miniGameScore = 0.5): RaceResult | { error: string } {
+    if (!save) return { error: 'No save.' };
+    const result = runRace(save, miniGameScore);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return result; }
+    const r = result as RaceResult;
+    setSave(r.save);
+    if (r.won) {
+      addLog(makeEntry('🏆', `You WON the race! 1st place — earned $${r.prize}! Your treehouse gets a trophy!`, 'good'));
+    } else if (r.place === 2) {
+      addLog(makeEntry('🥈', `2nd place! Earned $${r.prize}. Upgrade your bike for next time.`, 'neutral'));
+    } else {
+      addLog(makeEntry('🥉', `3rd place. No prize, but great fun! Keep practicing!`, 'neutral'));
+    }
+    return r;
+  }
+
+  function handleBuyBikeUpgrade(upgradeId: string) {
+    if (!save) return;
+    const result = buyBikeUpgrade(save, upgradeId as import('@/types/game').BikeUpgrade);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    setSave(result);
+    addLog(makeEntry('🔧', `Bike upgrade installed! Your bike just got better.`, 'good'));
+  }
+
+  // ---- Pond / fishing handlers ----
+  function handleFish(successRate: number): FishingResult | { error: string } {
+    if (!save) return { error: 'No save.' };
+    const result = goFishing(save, successRate);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return result; }
+    const r = result as FishingResult;
+    setSave(r.save);
+    if (r.caught) {
+      addLog(makeEntry(r.fishEmoji, `Caught a ${r.fishName}! +$${r.fishValue}`, 'good'));
+    } else {
+      addLog(makeEntry('🌊', 'No catch this time. Try again!', 'neutral'));
+    }
+    if (r.collectibleFound) {
+      const info = COLLECTIBLES[r.collectibleFound];
+      const remaining = ALL_COLLECTIBLES.filter(c => !r.save.pond?.collectibles.includes(c)).length;
+      addLog(makeEntry(info.emoji, `Found a ${info.name} for Grandpa's quest! ${remaining === 0 ? 'That\'s all 5 — go see Grandpa!' : `${5 - remaining}/5 found.`}`, 'event'));
+    }
+    return r;
+  }
+
+  // ---- Piggy bank handlers ----
+  function handleDepositPiggyBank(amount: number) {
+    if (!save) return;
+    const result = depositToPiggyBank(save, amount);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    setSave(result);
+    addLog(makeEntry('🐷', `Deposited $${amount} into your piggy bank! Balance: $${result.piggyBank.balance.toFixed(2)}`, 'good'));
+  }
+
+  function handleWithdrawPiggyBank(amount: number) {
+    if (!save) return;
+    const result = withdrawFromPiggyBank(save, amount);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    setSave(result);
+    addLog(makeEntry('🐷', `Withdrew $${amount} from piggy bank. Cash: $${result.coins}`, 'neutral'));
+  }
+
+  // ---- Grandpa / Skill handlers ----
+  function handleLearnLesson(lessonId: string, skillGained: number) {
+    if (!save) return;
+    const updatedLessons = save.grandpaLessons.map(l =>
+      l.id === lessonId ? { ...l, completed: true } : l
+    );
+    const withSkill = gainSkill({ ...save, grandpaLessons: updatedLessons }, skillGained);
+    // spend 1 energy
+    const withToken = { ...withSkill, tokens: { ...withSkill.tokens, spent: withSkill.tokens.spent + 1 } };
+    setSave(withToken);
+    addLog(makeEntry('⭐', `Lesson complete! +${skillGained} Skill. Total: ${withToken.skill}/100`, 'good'));
+  }
+
+  function handleSimpleLearn() {
+    if (!save) return;
+    const tokensLeft = save.tokens.total - save.tokens.spent;
+    if (tokensLeft < 1) { addLog(makeEntry('❌', 'Not enough energy to chat with Grandpa today.', 'bad')); return; }
+    const chats = [
+      "Always pay yourself first — even a little bit into savings adds up.",
+      "Customers care about value, not just price. Give them a reason to come back.",
+      "The best time to plant a tree was yesterday. The second best time is today.",
+      "Keep track of what comes in and what goes out. That awareness is half the battle.",
+      "When something goes wrong, ask: what can I learn from this?",
+    ];
+    const line = chats[save.dayNumber % chats.length];
+    const withSkill = gainSkill(save, 1);
+    const withToken = { ...withSkill, tokens: { ...withSkill.tokens, spent: withSkill.tokens.spent + 1 } };
+    setSave(withToken);
+    addLog(makeEntry('👴', `Grandpa: "${line}" (+1 Skill)`, 'event'));
+  }
+
   function handleNextDay() {
     if (!save) return;
     let updated = advanceDay(save);
     updated = advanceGardenDay(updated);
     updated = advancePetDay(updated);
+    updated = advanceBikeDay(updated);
+    updated = advancePondDay(updated);
+    updated = advanceSecondStandDay(updated);
     setSave(updated);
     const weatherEmojis: Record<string, string> = { sunny: '☀️', cloudy: '⛅', rainy: '🌧️', stormy: '⛈️' };
     const demandNote = weatherDemandMultiplier(updated.weather) < 1 ? ' Demand will be lower today.' : ' Great day for lemonade!';
@@ -369,7 +558,16 @@ export default function Home() {
     }
 
     if (updated.dreamGoal.interestEarnedToday && updated.dreamGoal.interestEarnedToday > 0) {
-      addLog(makeEntry('🐷', `Your piggy bank grew overnight! +$${updated.dreamGoal.interestEarnedToday.toFixed(2)} interest on your savings.`, 'good'));
+      addLog(makeEntry('⭐', `Dream savings grew! +$${updated.dreamGoal.interestEarnedToday.toFixed(2)} interest.`, 'good'));
+    }
+    // Second stand reminder
+    if (updated.secondStand && updated.secondStand.supplyCount === 0) {
+      addLog(makeEntry('🏪', 'Stand #2 is empty! Stock it with lemons so your helper can sell today.', 'neutral'));
+    } else if (updated.secondStand && !updated.secondStand.helperHiredToday) {
+      addLog(makeEntry('🏪', `Stand #2 is stocked with ${updated.secondStand.supplyCount} lemons — don't forget to hire a helper!`, 'neutral'));
+    }
+    if (updated.piggyBank?.interestEarnedToday && updated.piggyBank.interestEarnedToday > 0) {
+      addLog(makeEntry('🐷', `Piggy bank: +$${updated.piggyBank.interestEarnedToday.toFixed(2)} interest! Balance: $${updated.piggyBank.balance.toFixed(2)}`, 'good'));
     }
     if (updated.dreamGoal.unlocked && !save.dreamGoal.unlocked) {
       setShowCelebration(true);
@@ -426,12 +624,28 @@ export default function Home() {
           <span className="text-xl">🌍</span>
           <span className="font-bold text-green-700 text-sm">{save.playerName}'s World</span>
           <span className="text-xs text-gray-400">· Day {save.dayNumber}</span>
+          {/* Mood icon */}
+          <span className="text-base" title={`Mood: ${getMood(save.lifeMeters.happiness).label}`}>
+            {getMood(save.lifeMeters.happiness).emoji}
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-1.5">
             <span className="text-base">💵</span>
             <span className="font-bold text-yellow-700">{save.coins}</span>
           </div>
+          {save.piggyBank?.balance > 0 && (
+            <div className="flex items-center gap-1 bg-pink-50 border border-pink-200 rounded-xl px-2 py-1.5" title="Piggy Bank">
+              <span className="text-sm">🐷</span>
+              <span className="text-xs font-bold text-pink-600">${save.piggyBank.balance.toFixed(0)}</span>
+            </div>
+          )}
+          {(save.skill ?? 0) > 0 && (
+            <div className="flex items-center gap-1 bg-indigo-50 border border-indigo-200 rounded-xl px-2 py-1.5" title="Skill">
+              <span className="text-sm">⭐</span>
+              <span className="text-xs font-bold text-indigo-600">{save.skill}</span>
+            </div>
+          )}
           <span className="text-xs text-gray-400">{save.lemonadeStand.supplyCount}🍋</span>
           <button onClick={() => setShowWorldCode(true)} className="text-lg hover:scale-110 transition-transform" title="World Code">🗺️</button>
         </div>
@@ -445,9 +659,25 @@ export default function Home() {
         onSelectLocation={setActiveLocation}
       />
 
-      {/* Day clock strip */}
-      <div className="px-4 py-2 bg-white border-b border-gray-100">
-        <DayClock tokens={save.tokens} weather={save.weather} />
+      {/* Zero-energy sleep nudge */}
+      {save.tokens.spent >= save.tokens.total && (
+        <div className="bg-indigo-50 border-b border-indigo-200 px-4 py-2 flex items-center gap-2 text-sm text-indigo-700 font-medium">
+          <span>🌙</span>
+          <span>You're out of energy for today — head to <strong>Home</strong> to sleep and start a new day!</span>
+        </div>
+      )}
+
+      {/* Energy strip */}
+      <div className="px-4 py-2 bg-white border-b border-gray-100 flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          {Array.from({ length: save.tokens.total }).map((_, i) => (
+            <span key={i} className={`text-lg transition-all ${i < (save.tokens.total - save.tokens.spent) ? 'opacity-100' : 'opacity-20'}`}>⚡</span>
+          ))}
+          <span className="text-xs text-gray-500 ml-1 font-medium">
+            {save.tokens.total - save.tokens.spent} energy left
+          </span>
+        </div>
+        <div className="text-xs text-gray-400">Day {save.dayNumber} · {save.weather === 'sunny' ? '☀️' : save.weather === 'cloudy' ? '⛅' : save.weather === 'rainy' ? '🌧️' : '⛈️'} {save.weather}</div>
       </div>
 
       {/* Location panel */}
@@ -461,13 +691,17 @@ export default function Home() {
             ...(save.worldUnlocks?.garden    ? [{ id: 'garden' as const,    emoji: '🌱', label: 'Garden' }] : []),
             ...(save.worldUnlocks?.pet       ? [{ id: 'pet' as const,       emoji: '🐶', label: save.pet?.name || 'Puppy' }] : []),
             ...(save.worldUnlocks?.treehouse ? [{ id: 'treehouse' as const, emoji: '🏠', label: 'Treehouse' }] : []),
+            ...(save.worldUnlocks?.bicycle   ? [{ id: 'bike' as const,      emoji: '🚲', label: 'Bike' }] : []),
+            ...(save.worldUnlocks?.bicycle   ? [{ id: 'pond' as const,      emoji: '🎣', label: 'Pond' }] : []),
+            ...(save.worldUnlocks?.bicycle   ? [{ id: 'stand2' as const,    emoji: save.secondStand ? '🏪' : '🔒', label: 'Stand #2' }] : []),
+            { id: 'grandpa',  emoji: '👴', label: 'Grandpa' },
             { id: 'tortoise', emoji: '🐢', label: 'Tortoise' },
             { id: 'buzzybee', emoji: '🐝', label: 'Buzzy' },
             { id: 'wisefox',  emoji: '🦊', label: 'Fox' },
           ] as const).map(loc => (
             <button
               key={loc.id}
-              onClick={() => setActiveLocation(loc.id)}
+              onClick={() => setActiveLocation(loc.id as GameLocation)}
               className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
                 activeLocation === loc.id
                   ? 'bg-green-500 text-white shadow'
@@ -500,21 +734,53 @@ export default function Home() {
               <TreehousePanel
                 save={save}
                 onVisit={handleVisitTreehouse}
+                onHangOut={handleHangOutTreehouse}
                 onCatch={handleCatchButterfly}
                 onBuyAddon={handleBuyAddon}
               />
+            ) : activeLocation === 'grandpa' ? (
+              <GrandpaPanel
+                save={save}
+                onLearnLesson={handleLearnLesson}
+                onSimpleLearn={handleSimpleLearn}
+                onClose={() => setActiveLocation('home')}
+              />
+            ) : activeLocation === 'bike' ? (
+              <BikePanel
+                save={save}
+                onDelivery={handleDelivery}
+                onRace={handleRace}
+                onBuyUpgrade={handleBuyBikeUpgrade}
+                onGoToPond={() => setActiveLocation('pond')}
+              />
+            ) : activeLocation === 'pond' ? (
+              <PondPanel
+                save={save}
+                onFish={handleFish}
+              />
+            ) : activeLocation === 'stand2' ? (
+              <SecondStandPanel
+                save={save}
+                onStock={handleStockSecondStand}
+                onHireHelper={handleHireSecondStandHelper}
+                onSetPrice={handleSetSecondStandPrice}
+                onClaimReward={handleClaimSecondStand}
+              />
             ) : (
               <LocationPanel
-                location={activeLocation}
+                location={activeLocation as unknown as 'stand' | 'tree' | 'home' | 'tortoise' | 'buzzybee' | 'wisefox'}
                 save={save}
                 onBuySupplies={handleBuySupplies}
                 onRunStand={handleRunStand}
                 onHireHelper={handleHireHelper}
                 onSetPrice={handleSetPrice}
+                onBuyStandUpgrade={handleBuyStandUpgrade}
                 onPlantTree={handlePlantTree}
                 onHarvestTree={handleHarvestTree}
                 onContribute={handleContribute}
                 onWithdraw={handleWithdrawFromDream}
+                onDepositPiggyBank={handleDepositPiggyBank}
+                onWithdrawPiggyBank={handleWithdrawPiggyBank}
                 onNextDay={handleNextDay}
               />
             )}

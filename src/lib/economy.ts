@@ -11,43 +11,16 @@ const CUPS_PER_LEMON = 1;
 const HELPER_SHIFT_COST = 5;    // $5 to hire someone for one shift (no energy spent)
 const TOKEN_COST_RUN_STAND = 1;
 const TOKEN_COST_TEND_TREE = 1;
-const TOKEN_COST_LEARN = 2;
+const TOKEN_COST_LEARN = 1;
 const TOKEN_COST_EXPLORE = 1;
 const TOKEN_COST_BUY_SUPPLIES = 1;
-const TOKEN_COST_HIRE_HELPER = 0; // hiring a helper costs no energy, just $5
+const TOKEN_COST_HIRE_HELPER = 0;  // hiring costs no energy, just $5
 
-// Hours each activity advances the clock (day runs 7am → 9pm = 14hrs max)
-export const HOURS: Record<string, number> = {
-  run_stand:      4,  // a full shift
-  buy_supplies:   1,
-  plant_tree:     2,
-  harvest_tree:   2,
-  plant_crop:     2,
-  harvest_crop:   2,
-  sell_market:    1,
-  feed_pet:       1,
-  play_pet:       1,
-  visit_treehouse: 2,
-  catch_butterfly: 2,
-  talk_neighbor:  1,
-  contribute:     1,
-  hire_helper:    1,
-};
-
-export const DAY_START = 7;   // 7am
-export const DAY_END   = 21;  // 9pm
-
-// Spend one token + advance hours; returns updated tokens object
-// Returns null if no tokens left or day already over
+// Spend one token; returns updated tokens or null if none left
 import type { ActivityTokens } from '@/types/game';
-export function spendToken(tokens: ActivityTokens, action: string): ActivityTokens | null {
+export function spendToken(tokens: ActivityTokens, _action?: string): ActivityTokens | null {
   if (tokens.spent >= tokens.total) return null;
-  const hrs = HOURS[action] ?? 1;
-  return {
-    ...tokens,
-    spent: tokens.spent + 1,
-    hoursElapsed: Math.min(tokens.hoursElapsed + hrs, DAY_END - DAY_START),
-  };
+  return { ...tokens, spent: tokens.spent + 1 };
 }
 
 // ---- Weather demand modifier ----
@@ -62,11 +35,12 @@ export function weatherDemandMultiplier(weather: Weather): number {
 }
 
 // ---- How many customers show up ----
-export function simulateCustomers(weather: Weather, price: number): number {
-  const base = 8; // baseline customers on a sunny day at price 1
+export function simulateCustomers(weather: Weather, price: number, hasUpgrade = false): number {
+  const base = hasUpgrade ? 12 : 8; // upgraded stand draws more customers
   const weatherMod = weatherDemandMultiplier(weather);
-  // Higher price = fewer customers (simple linear demand)
-  const priceMod = Math.max(0, 1 - (price - 1) * 0.15);
+  // Higher price = fewer customers; upgrade softens the penalty at high prices
+  const priceDropRate = hasUpgrade ? 0.10 : 0.15;
+  const priceMod = Math.max(0, 1 - (price - 1) * priceDropRate);
   return Math.floor(base * weatherMod * priceMod);
 }
 
@@ -87,7 +61,7 @@ export function runLemonadeStand(save: PlayerSave): StandResult | { error: strin
   if (tokens.spent + TOKEN_COST_RUN_STAND > tokens.total) return { error: 'Not enough energy left today.' };
   if (lemonadeStand.supplyCount === 0) return { error: 'You\'re out of lemons! Buy supplies first.' };
 
-  const customers = simulateCustomers(weather, lemonadeStand.pricePerCup);
+  const customers = simulateCustomers(weather, lemonadeStand.pricePerCup, lemonadeStand.hasUpgrade);
   const maxCups = lemonadeStand.supplyCount * CUPS_PER_LEMON;
   const cupsServed = Math.min(customers, maxCups);
   const limitingFactor: 'supplies' | 'customers' | null =
@@ -121,7 +95,7 @@ export function hireForShift(save: PlayerSave): HireShiftResult | { error: strin
   if (save.lemonadeStand.supplyCount === 0) return { error: 'You\'re out of lemons! Buy supplies first.' };
 
   const { weather, lemonadeStand } = save;
-  const baseCustomers = simulateCustomers(weather, lemonadeStand.pricePerCup);
+  const baseCustomers = simulateCustomers(weather, lemonadeStand.pricePerCup, lemonadeStand.hasUpgrade);
 
   // 25% chance of a bad shift — helper sells at half efficiency
   const isBadShift = Math.random() < 0.25;
@@ -246,10 +220,12 @@ export function contributeToDream(save: PlayerSave, amount: number): PlayerSave 
   if (amount <= 0) return { error: 'Amount must be positive.' };
   if (save.coins < amount) return { error: `You only have ${save.coins} dollars.` };
   if (save.dreamGoal.unlocked) return { error: 'Dream already reached!' };
+  if (save.tokens.spent >= save.tokens.total) return { error: 'Not enough energy to head to the bank right now.' };
 
   const updated = { ...save };
   updated.dreamGoal = { ...save.dreamGoal };
   updated.lifeMeters = { ...save.lifeMeters };
+  updated.tokens = spendToken(save.tokens, 'contribute') ?? save.tokens;
 
   updated.coins -= amount;
   updated.totalSpent += amount;
@@ -269,7 +245,7 @@ export function advanceDay(save: PlayerSave): PlayerSave {
   updated.dreamGoal = { ...save.dreamGoal };
 
   updated.dayNumber += 1;
-  updated.tokens = { ...save.tokens, spent: 0, hoursElapsed: 0 };
+  updated.tokens = { ...save.tokens, spent: 0 };
   updated.lemonadeStand = { ...save.lemonadeStand, helperShiftsToday: 0 };
 
   // Grow all lemon trees
@@ -278,9 +254,9 @@ export function advanceDay(save: PlayerSave): PlayerSave {
   updated.lemonTree = { ...save.lemonTree };
   if (save.lemonTree.planted) updated.lemonTree.daysOld = save.lemonTree.daysOld + 1;
 
-  // 1% daily interest on dream goal savings
+  // 0.25% daily interest on dream goal savings
   if (save.dreamGoal.saved > 0 && !save.dreamGoal.unlocked) {
-    const interest = Math.round(save.dreamGoal.saved * 0.01 * 100) / 100;
+    const interest = Math.round(save.dreamGoal.saved * 0.0025 * 100) / 100;
     updated.dreamGoal.saved = Math.min(
       save.dreamGoal.cost,
       Math.round((save.dreamGoal.saved + interest) * 100) / 100
@@ -289,6 +265,17 @@ export function advanceDay(save: PlayerSave): PlayerSave {
     if (updated.dreamGoal.saved >= save.dreamGoal.cost) updated.dreamGoal.unlocked = true;
   } else {
     updated.dreamGoal.interestEarnedToday = 0;
+  }
+
+  // 0.25% daily interest on piggy bank
+  updated.piggyBank = { ...save.piggyBank };
+  if (save.piggyBank?.balance > 0) {
+    const pbInterest = Math.round(save.piggyBank.balance * 0.0025 * 100) / 100;
+    updated.piggyBank.balance = Math.round((save.piggyBank.balance + pbInterest) * 100) / 100;
+    updated.piggyBank.interestEarnedToday = pbInterest;
+    updated.piggyBank.totalInterestEarned = Math.round((save.piggyBank.totalInterestEarned + pbInterest) * 100) / 100;
+  } else {
+    updated.piggyBank.interestEarnedToday = 0;
   }
 
   updated.weather = randomWeather();
@@ -312,6 +299,147 @@ function randomWeather(): PlayerSave['weather'] {
   return 'stormy';
 }
 
+// ---- Piggy Bank: deposit cash into savings ----
+export function depositToPiggyBank(save: PlayerSave, amount: number): PlayerSave | { error: string } {
+  if (amount <= 0) return { error: 'Amount must be positive.' };
+  if (save.coins < amount) return { error: `You only have $${save.coins} to deposit.` };
+  return {
+    ...save,
+    coins: save.coins - amount,
+    piggyBank: {
+      ...save.piggyBank,
+      balance: Math.round((save.piggyBank.balance + amount) * 100) / 100,
+    },
+  };
+}
+
+// ---- Piggy Bank: withdraw from savings ----
+export function withdrawFromPiggyBank(save: PlayerSave, amount: number): PlayerSave | { error: string } {
+  if (amount <= 0) return { error: 'Amount must be positive.' };
+  if (save.piggyBank.balance < amount) return { error: `You only have $${save.piggyBank.balance.toFixed(2)} in your piggy bank.` };
+  return {
+    ...save,
+    coins: save.coins + amount,
+    piggyBank: {
+      ...save.piggyBank,
+      balance: Math.round((save.piggyBank.balance - amount) * 100) / 100,
+    },
+  };
+}
+
+// ---- Gain Skill points ----
+export function gainSkill(save: PlayerSave, points: number): PlayerSave {
+  return { ...save, skill: Math.min(100, (save.skill ?? 0) + points) };
+}
+
+// ---- Mood helper (converts happiness 0–100 to emoji mood) ----
+export function getMood(happiness: number): { mood: string; emoji: string; label: string } {
+  if (happiness >= 70) return { mood: 'great', emoji: '😊', label: 'Great' };
+  if (happiness >= 45) return { mood: 'good',  emoji: '🙂', label: 'Good' };
+  if (happiness >= 25) return { mood: 'okay',  emoji: '😐', label: 'Okay' };
+  return { mood: 'sad', emoji: '😕', label: 'Feeling down' };
+}
+
+// ---- Stand Upgrade: $40, improves appearance → more customers + softer price penalty ----
+export const STAND_UPGRADE_COST = 40;
+
+export function buyStandUpgrade(save: PlayerSave): PlayerSave | { error: string } {
+  if (save.lemonadeStand.hasUpgrade) return { error: 'Your stand is already upgraded!' };
+  if (save.coins < STAND_UPGRADE_COST) return { error: `The upgrade costs $${STAND_UPGRADE_COST}. You only have $${save.coins}.` };
+  return {
+    ...save,
+    coins: save.coins - STAND_UPGRADE_COST,
+    totalSpent: save.totalSpent + STAND_UPGRADE_COST,
+    lemonadeStand: { ...save.lemonadeStand, hasUpgrade: true },
+    lifeMeters: { ...save.lifeMeters, happiness: Math.min(100, save.lifeMeters.happiness + 10) },
+  };
+}
+
+// ---- Second Stand: unlock (Grandpa quest reward) ----
+export function unlockSecondStand(save: PlayerSave): PlayerSave | { error: string } {
+  if (save.secondStand) return { error: 'Second stand already unlocked!' };
+  const allCollectibles: import('@/types/game').CollectibleId[] = ['blue_feather', 'smooth_stone', 'old_coin', 'rare_fish', 'wildflower'];
+  const found = save.pond?.collectibles ?? [];
+  const hasAll = allCollectibles.every(c => found.includes(c));
+  if (!hasAll) return { error: 'You need all 5 collectibles first! Keep fishing at the pond.' };
+  return {
+    ...save,
+    secondStand: {
+      unlockedOnDay: save.dayNumber,
+      supplyCount: 0,
+      pricePerCup: 1,
+      helperHiredToday: false,
+      totalEarned: 0,
+      totalDaysRun: 0,
+    },
+    // Happiness boost for major achievement
+    lifeMeters: { ...save.lifeMeters, happiness: Math.min(100, save.lifeMeters.happiness + 15) },
+  };
+}
+
+// ---- Second Stand: stock supplies (transfer from main supply) ----
+export function stockSecondStand(save: PlayerSave, lemons: number): PlayerSave | { error: string } {
+  if (!save.secondStand) return { error: 'No second stand yet!' };
+  if (save.lemonadeStand.supplyCount < lemons) {
+    return { error: `You only have ${save.lemonadeStand.supplyCount} lemons. Buy more supplies first.` };
+  }
+  return {
+    ...save,
+    lemonadeStand: { ...save.lemonadeStand, supplyCount: save.lemonadeStand.supplyCount - lemons },
+    secondStand: { ...save.secondStand, supplyCount: save.secondStand.supplyCount + lemons },
+  };
+}
+
+// ---- Second Stand: set price ----
+export function setSecondStandPrice(save: PlayerSave, price: number): PlayerSave {
+  if (!save.secondStand) return save;
+  return { ...save, secondStand: { ...save.secondStand, pricePerCup: Math.max(1, Math.min(5, price)) } };
+}
+
+// ---- Second Stand: hire helper for the day ($5, no energy) ----
+export interface SecondStandResult {
+  save: PlayerSave;
+  cupsServed: number;
+  revenue: number;
+  profit: number;
+  isBadShift: boolean;
+}
+
+export function hireSecondStandHelper(save: PlayerSave): SecondStandResult | { error: string } {
+  if (!save.secondStand) return { error: 'No second stand yet!' };
+  if (save.secondStand.helperHiredToday) return { error: 'Helper already hired for today.' };
+  if (save.coins < HELPER_SHIFT_COST) return { error: `Hiring costs $${HELPER_SHIFT_COST}. You only have $${save.coins}.` };
+  if (save.secondStand.supplyCount === 0) return { error: 'The second stand has no lemons! Stock it first.' };
+
+  const isBadShift = Math.random() < 0.25;
+  const baseCustomers = simulateCustomers(save.weather, save.secondStand.pricePerCup);
+  const customers = isBadShift ? Math.floor(baseCustomers * 0.4) : baseCustomers;
+  const cupsServed = Math.min(customers, save.secondStand.supplyCount);
+  const revenue = cupsServed * save.secondStand.pricePerCup;
+  const profit = revenue - HELPER_SHIFT_COST;
+
+  const nextSave: PlayerSave = {
+    ...save,
+    coins: save.coins - HELPER_SHIFT_COST + revenue,
+    totalEarned: save.totalEarned + revenue,
+    totalSpent: save.totalSpent + HELPER_SHIFT_COST,
+    secondStand: {
+      ...save.secondStand,
+      supplyCount: save.secondStand.supplyCount - cupsServed,
+      helperHiredToday: true,
+      totalEarned: save.secondStand.totalEarned + revenue,
+      totalDaysRun: save.secondStand.totalDaysRun + 1,
+    },
+  };
+  return { save: nextSave, cupsServed, revenue, profit, isBadShift };
+}
+
+// ---- Advance second stand day ----
+export function advanceSecondStandDay(save: PlayerSave): PlayerSave {
+  if (!save.secondStand) return save;
+  return { ...save, secondStand: { ...save.secondStand, helperHiredToday: false } };
+}
+
 export const COSTS = {
   SUPPLY_COST,
   LEMONS_PER_BATCH,
@@ -324,4 +452,5 @@ export const COSTS = {
   TREE_YIELD: 10,
   TREE_HARVEST_EVERY: 3,
   TREE_MATURE_DAYS: 3,
+  STAND_UPGRADE_COST,
 };
