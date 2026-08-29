@@ -6,8 +6,8 @@ import type { PlayerSave } from '@/types/game';
 
 export const DREAM_GOALS = [
   { id: 'garden',    name: 'Garden Plot', emoji: '🌱', cost: 60,  unlocks: 'garden',    unlocksDesc: 'Grow crops and sell them at the market!' },
-  { id: 'puppy',     name: 'Puppy',       emoji: '🐶', cost: 100, unlocks: 'pet',       unlocksDesc: 'A loyal friend who lives at your home.' },
   { id: 'bicycle',   name: 'Bicycle',     emoji: '🚲', cost: 80,  unlocks: 'bicycle',   unlocksDesc: 'Get around faster — deliveries, races, and the pond!' },
+  { id: 'puppy',     name: 'Puppy',       emoji: '🐶', cost: 100, unlocks: 'pet',       unlocksDesc: 'A loyal friend who lives at your home.' },
   { id: 'treehouse', name: 'Treehouse',   emoji: '🌳', cost: 160, unlocks: 'treehouse', unlocksDesc: 'A secret hangout spot with new quests.' },
 ];
 

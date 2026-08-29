@@ -123,9 +123,12 @@ export default function Onboarding({ onComplete, onLoadCode }: Props) {
         {!showLoad && step === 2 && (
           <>
             <div className="text-5xl mb-3">✨</div>
-            <h2 className="text-xl font-bold text-green-700 mb-2">Pick your Dream Goal</h2>
-            <p className="text-gray-500 text-sm mb-4">
+            <h2 className="text-xl font-bold text-green-700 mb-2">Pick your First Dream</h2>
+            <p className="text-gray-500 text-sm mb-1">
               You'll earn dollars and save toward this. Pick what excites you most!
+            </p>
+            <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-3">
+              🌟 This is just your <strong>first</strong> goal — you'll unlock all the others as you keep playing!
             </p>
             <div className="space-y-3 mb-6">
               {DREAM_GOALS.map((g) => (
@@ -141,7 +144,7 @@ export default function Onboarding({ onComplete, onLoadCode }: Props) {
                   <span className="text-4xl">{g.emoji}</span>
                   <div className="text-left">
                     <div className="font-bold text-gray-800">{g.name}</div>
-                    <div className="text-xs text-gray-500">Costs {g.cost} 💵</div>
+                    <div className="text-xs text-gray-500">Save up ${g.cost}</div>
                   </div>
                   {goalId === g.id && <span className="ml-auto text-amber-500 text-xl">✓</span>}
                 </button>
