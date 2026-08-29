@@ -78,12 +78,20 @@ export default function LocationPanel({
             <span className="text-2xl font-bold text-yellow-600">{save.lemonadeStand.pricePerCup}</span>
             <span className="text-sm text-gray-400"> 💵/cup</span>
           </div>
-          <button onClick={() => onSetPrice(Math.min(5, save.lemonadeStand.pricePerCup + 1))} disabled={save.lemonadeStand.pricePerCup >= 5}
+          <button onClick={() => onSetPrice(Math.min(save.lemonadeStand.hasUpgrade ? 4 : 3, save.lemonadeStand.pricePerCup + 1))}
+            disabled={save.lemonadeStand.pricePerCup >= (save.lemonadeStand.hasUpgrade ? 4 : 3)}
             className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 disabled:opacity-30 font-bold text-lg">+</button>
         </div>
         <div className="text-xs text-center text-gray-400 mt-1">
-          {save.lemonadeStand.pricePerCup <= 1 ? 'Low price → more customers' : save.lemonadeStand.pricePerCup >= 4 ? 'High price → fewer customers' : 'Good balance'}
+          {save.lemonadeStand.pricePerCup <= 1
+            ? 'Low price → more customers'
+            : save.lemonadeStand.pricePerCup >= (save.lemonadeStand.hasUpgrade ? 4 : 3)
+            ? 'Max price — upgrade your stand to charge more!'
+            : 'Good balance'}
         </div>
+        {!save.lemonadeStand.hasUpgrade && (
+          <div className="text-xs text-center text-amber-500 mt-0.5">💡 Upgrade your stand to unlock $4/cup</div>
+        )}
       </div>
 
       {/* Hire for a shift */}

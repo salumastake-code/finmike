@@ -57,6 +57,17 @@ export function loadSave(): PlayerSave | null {
     }
     if (save.lifeMeters.relationships === undefined) save.lifeMeters.relationships = 60;
 
+    // ---- dreamGoal.unlocks — infer from goal id if missing (old saves) ----
+    if (save.dreamGoal && !save.dreamGoal.unlocks) {
+      const idMap: Record<string, string> = {
+        garden: 'garden', puppy: 'pet', bicycle: 'bicycle', treehouse: 'treehouse',
+      };
+      save.dreamGoal.unlocks = idMap[save.dreamGoal.id] ?? save.dreamGoal.id;
+    }
+
+    // ---- lemonadeStand.totalEarned ----
+    if (save.lemonadeStand.totalEarned === undefined) save.lemonadeStand.totalEarned = 0;
+
     return save as PlayerSave;
   } catch {
     return null;

@@ -293,19 +293,26 @@ export default function BikePanel({ save, onDelivery, onRace, onBuyUpgrade, onGo
               </div>
             </div>
             {canRace ? (
-              <button onClick={() => setShowRace(true)}
-                disabled={tokensLeft < 1}
-                className="w-full flex items-center gap-3 p-3 bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white rounded-xl font-bold transition-colors">
-                <span>🚲</span>
-                <div className="flex-1 text-left text-sm">
-                  Enter the Race!
-                  <div className="text-xs opacity-80 font-normal">1st: $15 + 🏆 · 2nd: $5 · 3rd: the glory</div>
-                </div>
-                <span className="text-xs bg-black/20 rounded-lg px-2 py-1">1⚡</span>
-              </button>
+              <>
+                <button onClick={() => setShowRace(true)}
+                  disabled={tokensLeft < 1}
+                  className="w-full flex items-center gap-3 p-3 bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white rounded-xl font-bold transition-colors">
+                  <span>🚲</span>
+                  <div className="flex-1 text-left text-sm">
+                    Enter the Race!
+                    <div className="text-xs opacity-80 font-normal">1st: $15 + 🏆 · 2nd: $5 · 3rd: the glory</div>
+                  </div>
+                  <span className="text-xs bg-black/20 rounded-lg px-2 py-1">1⚡</span>
+                </button>
+                {ownedUpgrades.length === 0 && (
+                  <div className="text-xs text-center text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mt-1">
+                    💡 <strong>Tip:</strong> Buy upgrades in the Upgrades tab before racing — they boost your score!
+                  </div>
+                )}
+              </>
             ) : (
               <div className="text-xs text-center text-gray-400 py-2">
-                Practice upgrading your bike while you wait!
+                Check the <strong>Upgrades</strong> tab to get ready for the next race!
               </div>
             )}
           </div>
@@ -314,7 +321,9 @@ export default function BikePanel({ save, onDelivery, onRace, onBuyUpgrade, onGo
 
       {tab === 'upgrades' && (
         <div className="space-y-2">
-          <div className="text-xs text-gray-400 mb-1">Upgrades make your bike faster for races and better for deliveries.</div>
+          <div className="text-xs text-gray-500 mb-2 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2">
+            🏁 Upgrades boost your race score. Tap timing = 40%, upgrades = 60%. Get upgrades first to win!
+          </div>
           {BIKE_UPGRADES.map(upgrade => {
             const owned = ownedUpgrades.includes(upgrade.id);
             return (

@@ -498,11 +498,12 @@ export default function Home() {
   // ---- Grandpa / Skill handlers ----
   function handleLearnLesson(lessonId: string, skillGained: number) {
     if (!save) return;
+    const tokensLeft = save.tokens.total - save.tokens.spent;
+    if (tokensLeft < 1) { addLog(makeEntry('❌', 'Not enough energy for a lesson right now.', 'bad')); return; }
     const updatedLessons = save.grandpaLessons.map(l =>
       l.id === lessonId ? { ...l, completed: true } : l
     );
     const withSkill = gainSkill({ ...save, grandpaLessons: updatedLessons }, skillGained);
-    // spend 1 energy
     const withToken = { ...withSkill, tokens: { ...withSkill.tokens, spent: withSkill.tokens.spent + 1 } };
     setSave(withToken);
     addLog(makeEntry('⭐', `Lesson complete! +${skillGained} Skill. Total: ${withToken.skill}/100`, 'good'));

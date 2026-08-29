@@ -36,11 +36,12 @@ export function weatherDemandMultiplier(weather: Weather): number {
 
 // ---- How many customers show up ----
 export function simulateCustomers(weather: Weather, price: number, hasUpgrade = false): number {
-  const base = hasUpgrade ? 12 : 8; // upgraded stand draws more customers
+  const base = hasUpgrade ? 12 : 8;
   const weatherMod = weatherDemandMultiplier(weather);
-  // Higher price = fewer customers; upgrade softens the penalty at high prices
+  // Hard cap: pre-upgrade max $3, post-upgrade max $4 — anything above is treated as max
+  const effectivePrice = Math.min(price, hasUpgrade ? 4 : 3);
   const priceDropRate = hasUpgrade ? 0.10 : 0.15;
-  const priceMod = Math.max(0, 1 - (price - 1) * priceDropRate);
+  const priceMod = Math.max(0, 1 - (effectivePrice - 1) * priceDropRate);
   return Math.floor(base * weatherMod * priceMod);
 }
 
