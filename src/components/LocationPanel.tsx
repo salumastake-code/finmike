@@ -1,6 +1,6 @@
 'use client';
 import type { PlayerSave } from '@/types/game';
-import { COSTS } from '@/lib/economy';
+import { COSTS, getMood } from '@/lib/economy';
 
 type GameLocation = 'stand' | 'tree' | 'home' | 'tortoise' | 'buzzybee' | 'wisefox';
 
@@ -291,6 +291,42 @@ export default function LocationPanel({
           </div>
         )}
       </div>
+
+      {/* Happiness meter */}
+      {(() => {
+        const mood = getMood(save.lifeMeters.happiness);
+        const h = save.lifeMeters.happiness;
+        const barColor = h >= 70 ? 'bg-green-400' : h >= 45 ? 'bg-yellow-400' : h >= 25 ? 'bg-orange-400' : 'bg-red-400';
+        const tips: string[] = [];
+        if (h < 70) {
+          if (save.worldUnlocks?.treehouse) tips.push('hang out in your treehouse');
+          if (save.worldUnlocks?.pet && save.pet) tips.push(`play with ${save.pet.name}`);
+          if (!save.worldUnlocks?.pet) tips.push('save for a puppy');
+          tips.push('chat with Grandpa');
+        }
+        return (
+          <div className="bg-white border border-gray-200 rounded-xl p-3">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1.5">
+                <span className="text-lg">{mood.emoji}</span>
+                <span className="text-sm font-bold text-gray-700">Mood: {mood.label}</span>
+              </div>
+              <span className="text-xs text-gray-400">{h}/100</span>
+            </div>
+            <div className="bg-gray-100 rounded-full h-3 overflow-hidden">
+              <div className={`${barColor} h-3 rounded-full transition-all`} style={{ width: `${h}%` }} />
+            </div>
+            {tips.length > 0 && h < 70 && (
+              <div className="text-xs text-gray-400 mt-1.5">
+                💡 To feel better: {tips.slice(0, 2).join(' or ')}
+              </div>
+            )}
+            {h >= 70 && (
+              <div className="text-xs text-green-500 mt-1.5">✨ Feeling great! Keep it up.</div>
+            )}
+          </div>
+        );
+      })()}
 
       <button onClick={onNextDay}
         className="w-full py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-xl shadow-md transition-colors">

@@ -21,7 +21,8 @@ export default function GardenPanel({ save, onPlant, onHarvest, onSell }: Props)
   const growingPlots = garden.plots.filter(p => !p.harvested && !p.damaged && (save.dayNumber - p.plantedDay) < p.matureAt);
   const damagedPlots = garden.plots.filter(p => p.damaged && !p.harvested);
   const hasInventory = Object.values(garden.marketInventory).some(v => v > 0);
-  const plotsUsed = garden.plots.filter(p => !p.harvested).length;
+  // Damaged plots clear overnight, so don't count them as "used"
+  const plotsUsed = garden.plots.filter(p => !p.harvested && !p.damaged).length;
 
   return (
     <div className="space-y-4">
@@ -81,11 +82,14 @@ export default function GardenPanel({ save, onPlant, onHarvest, onSell }: Props)
       {/* Damaged plots */}
       {damagedPlots.length > 0 && (
         <div className="space-y-1">
-          <div className="text-xs font-bold text-red-400 uppercase tracking-wide">Storm Damaged</div>
+          <div className="text-xs font-bold text-red-400 uppercase tracking-wide">Storm Damaged ⛈️</div>
           {damagedPlots.map(plot => (
             <div key={plot.id} className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center gap-2">
-              <span className="text-xl">💀</span>
-              <span className="text-sm text-red-600">{CROPS[plot.cropId].name} lost to the storm</span>
+              <span className="text-xl">🥀</span>
+              <div>
+                <div className="text-sm font-bold text-red-600">{CROPS[plot.cropId].name} lost to the storm</div>
+                <div className="text-xs text-red-400">The plot will clear overnight — you can replant tomorrow!</div>
+              </div>
             </div>
           ))}
         </div>

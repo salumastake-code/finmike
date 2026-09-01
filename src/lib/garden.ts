@@ -31,7 +31,8 @@ export function plantCrop(
   if (!save.garden) return { error: 'You don\'t have a garden yet!' };
   const crop = CROPS[cropId];
   if (save.coins < crop.cost) return { error: `You need $${crop.cost} to plant ${crop.name}.` };
-  if (save.garden.plots.length >= MAX_PLOTS) return { error: 'All 4 garden plots are full! Harvest first.' };
+  const activePlots = save.garden.plots.filter(p => !p.harvested && !p.damaged).length;
+  if (activePlots >= MAX_PLOTS) return { error: 'All 4 garden plots are full! Harvest or wait for damaged crops to clear.' };
   const tokensLeft = save.tokens.total - save.tokens.spent;
   if (tokensLeft < TOKEN_COST_GARDEN) return { error: 'Not enough energy to garden today.' };
 
@@ -118,7 +119,7 @@ export function sellAtMarket(
   };
 }
 
-// Called on advanceDay — apply storm damage, grow crops
+// Called on advanceDay — apply storm damage; clear damaged plots from previous day
 export function advanceGardenDay(save: PlayerSave): PlayerSave {
   if (!save.garden) return save;
   const isStormy = save.weather === 'stormy';
@@ -127,10 +128,14 @@ export function advanceGardenDay(save: PlayerSave): PlayerSave {
     ...save,
     garden: {
       ...save.garden,
-      plots: save.garden.plots.map(p => ({
-        ...p,
-        damaged: p.damaged || (isStormy && !p.harvested),
-      })),
+      plots: save.garden.plots
+        // Clear plots that were already damaged coming into this day (they had their "funeral" moment)
+        .filter(p => !p.damaged)
+        // Mark any un-harvested plots as damaged if it's stormy today
+        .map(p => ({
+          ...p,
+          damaged: isStormy && !p.harvested,
+        })),
     },
   };
 }
