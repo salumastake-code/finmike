@@ -24,6 +24,21 @@ import type { CropId } from '@/types/game';
 import Onboarding, { getCharacterEmoji } from '@/components/Onboarding';
 import GrandpaIntro from '@/components/GrandpaIntro';
 import BridgeTransition from '@/components/BridgeTransition';
+import Stage2Finale from '@/components/Stage2Finale';
+import BakeryPanel from '@/components/BakeryPanel';
+import EmployeesPanel from '@/components/EmployeesPanel';
+import DogWalkingPanel from '@/components/DogWalkingPanel';
+import TownBankPanel from '@/components/TownBankPanel';
+import TownParkPanel from '@/components/TownParkPanel';
+import {
+  checkStage2Eligible, activateStage2, advanceStage2Day,
+  setBakeryPrice, runBakeryShift, respondToCompetitor,
+  hireEmployee, startTraining, promoteToManager, assignEmployee,
+  goWalkDogs, depositToBank, withdrawFromBank, takeLoan,
+  contributeToTownPark, addParkAddition, initBakery, initDogWalking,
+  type DogWalkResult,
+} from '@/lib/stage2';
+import type { BakeryProductId, BakeryPriceLevel, EmployeeAssignment } from '@/types/game';
 import DreamCelebration, { NEXT_GOALS } from '@/components/DreamCelebration';
 import GardenPanel from '@/components/GardenPanel';
 import PetPanel, { READOPT_COST } from '@/components/PetPanel';
@@ -38,7 +53,7 @@ import LocationPanel from '@/components/LocationPanel';
 import EventLog from '@/components/EventLog';
 import WorldCodeModal from '@/components/WorldCodeModal';
 
-type GameLocation = 'stand' | 'tree' | 'home' | 'tortoise' | 'buzzybee' | 'wisefox' | 'garden' | 'pet' | 'treehouse' | 'grandpa' | 'bike' | 'pond' | 'stand2';
+type GameLocation = 'stand' | 'tree' | 'home' | 'tortoise' | 'buzzybee' | 'wisefox' | 'garden' | 'pet' | 'treehouse' | 'grandpa' | 'bike' | 'pond' | 'stand2' | 'bakery' | 'employees' | 'dogwalking' | 'townbank' | 'townpark';
 
 let logCounter = 0;
 function makeEntry(emoji: string, text: string, type: LogEntry['type']): LogEntry {
@@ -54,6 +69,7 @@ export default function Home() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [activeChat, setActiveChat] = useState<typeof QUICK_CHATS[0] | null>(null);
   const [showBridge, setShowBridge] = useState(false);
+  const [showStage2Finale, setShowStage2Finale] = useState(false);
   const [activeLocation, setActiveLocation] = useState<GameLocation | null>('stand');
 
   useEffect(() => {
@@ -240,6 +256,143 @@ export default function Home() {
     addLog(makeEntry('🐶', `${name} is home! Make sure to feed and play every day.`, 'event'));
   }
 
+  // ---- Stage 2 handlers ----
+  function handleStage2FinaleComplete() {
+    if (!save) return;
+    setShowStage2Finale(false);
+    const activated = activateStage2(save);
+    setSave(activated);
+    addLog(makeEntry('🌉', 'Stage 2 unlocked! A whole new part of town is waiting across the bridge.', 'event'));
+    setTimeout(() => setShowBridge(true), 400);
+  }
+
+  function handleRunBakeryShift(productId: BakeryProductId) {
+    if (!save) return;
+    const result = runBakeryShift(save, productId);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    const profit = result.bakery!.todayRevenue - result.bakery!.todayExpenses;
+    addLog(makeEntry('🥖', `Baked a batch — ${profit >= 0 ? `+$${profit} profit` : `$${profit} (rough day!)`}`, profit >= 0 ? 'good' : 'bad'));
+    setSave(result);
+  }
+
+  function handleSetBakeryPrice(level: BakeryPriceLevel) {
+    if (!save) return;
+    setSave(setBakeryPrice(save, level));
+  }
+
+  function handleRespondToCompetitor(response: string) {
+    if (!save) return;
+    const result = respondToCompetitor(save, response);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    addLog(makeEntry('🏪', `You chose to ${response.replace('_', ' ')}. Time will tell if it works!`, 'event'));
+    setSave(result);
+  }
+
+  function handleOpenBakery() {
+    if (!save) return;
+    const updated = { ...save, bakery: initBakery(save.dayNumber), worldUnlocks: { ...save.worldUnlocks, bakery: true } };
+    setSave(updated);
+    addLog(makeEntry('🥖', 'Bakery is open! Start baking to earn and build your reputation.', 'event'));
+  }
+
+  function handleHireEmployee(assignment: EmployeeAssignment) {
+    if (!save) return;
+    const result = hireEmployee(save, assignment);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    const emp = result.employees![result.employees!.length - 1];
+    setSave(result);
+    addLog(makeEntry('👤', `${emp.name} is hired! They're assigned to ${assignment.replace('_', ' ')}. Train them to improve performance.`, 'event'));
+  }
+
+  function handleTrainEmployee(employeeId: string, sessionIdx: number) {
+    if (!save) return;
+    const result = startTraining(save, employeeId, sessionIdx);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    addLog(makeEntry('📚', 'Training started! Come back in a few days to see progress.', 'event'));
+    setSave(result);
+  }
+
+  function handlePromoteEmployee(employeeId: string) {
+    if (!save) return;
+    const result = promoteToManager(save, employeeId);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    const emp = save.employees?.find(e => e.id === employeeId);
+    addLog(makeEntry('⭐', `${emp?.name} is now a Manager! +5 reputation and they can make decisions without you.`, 'good'));
+    setSave(result);
+  }
+
+  function handleAssignEmployee(employeeId: string, assignment: EmployeeAssignment) {
+    if (!save) return;
+    const result = assignEmployee(save, employeeId, assignment);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    setSave(result);
+  }
+
+  function handleUnlockDogWalking() {
+    if (!save || save.dogWalking) return;
+    setSave({ ...save, dogWalking: initDogWalking(save.dayNumber) });
+    addLog(makeEntry('🐕', 'Dog Walking unlocked! Head to the neighborhood to find dogs that need walking.', 'event'));
+  }
+
+  function handleWalkDogs(dogs: 1 | 2) {
+    if (!save) return;
+    const result = goWalkDogs(save, dogs);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    const { save: nextSave, isMishap, earnings } = result as DogWalkResult;
+    addLog(makeEntry('🐕',
+      isMishap
+        ? '😱 A dog got off the leash! Reputation took a hit. No pay for this walk.'
+        : `Walked ${dogs} dog${dogs > 1 ? 's' : ''} — +$${earnings}! Reputation up.`,
+      isMishap ? 'bad' : 'good',
+    ));
+    setSave(nextSave);
+  }
+
+  function handleBankDeposit(amount: number) {
+    if (!save) return;
+    const result = depositToBank(save, amount);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    setSave(result);
+    addLog(makeEntry('🏦', `Deposited $${amount} to the Town Bank. Earns 0.3% daily interest!`, 'good'));
+  }
+
+  function handleBankWithdraw(amount: number) {
+    if (!save) return;
+    const result = withdrawFromBank(save, amount);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    setSave(result);
+    addLog(makeEntry('🏦', `Withdrew $${amount} from the Town Bank.`, 'neutral'));
+  }
+
+  function handleTakeLoan(amount: number) {
+    if (!save) return;
+    const result = takeLoan(save, amount);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    setSave(result);
+    addLog(makeEntry('💳', `Borrowed $${amount} from the bank. Daily payments will be auto-deducted.`, 'event'));
+    addLog(makeEntry('👴', 'Grandpa: "Remember — borrowed money isn\'t free money. Some of what you earn is already spoken for."', 'neutral'));
+  }
+
+  function handleContributeToPark(amount: number) {
+    if (!save) return;
+    const result = contributeToTownPark(save, amount);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    setSave(result);
+    if (result.townPark?.built) {
+      addLog(makeEntry('🌳', "The Town Park is BUILT! The whole neighborhood came out to celebrate. Huge reputation boost!", 'event'));
+    } else {
+      addLog(makeEntry('🌳', `Contributed $${amount} to the park. Progress: ${result.townPark?.buildProgress}% built.`, 'good'));
+    }
+  }
+
+  function handleAddParkAddition(additionId: string) {
+    if (!save) return;
+    const result = addParkAddition(save, additionId);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    setSave(result);
+    addLog(makeEntry('🌳', `Added to the park! The community loves it.`, 'good'));
+  }
+
   function handleReadopt(name: string) {
     if (!save) return;
     if (save.coins < READOPT_COST) { addLog(makeEntry('❌', `You need $${READOPT_COST} to adopt a new puppy.`, 'bad')); return; }
@@ -406,6 +559,10 @@ export default function Home() {
     setSave(result);
     addLog(makeEntry('🏪', 'Grandpa helped you open Stand #2! You can\'t be in two places at once — hire a helper to run it.', 'event'));
     addLog(makeEntry('💡', 'Remember: hire a helper each day or the stand earns nothing. That\'s the cost of delegation!', 'neutral'));
+    // Check Stage 2 eligibility (unlocking Stand #2 might be the final condition)
+    if (!result.stage2FinaleShown && checkStage2Eligible(result)) {
+      setTimeout(() => setShowStage2Finale(true), 800);
+    }
   }
 
   function handleStockSecondStand(lemons: number) {
@@ -487,6 +644,10 @@ export default function Home() {
       const remaining = ALL_COLLECTIBLES.filter(c => !r.save.pond?.collectibles.includes(c)).length;
       addLog(makeEntry(info.emoji, `Found a ${info.name} for Grandpa's quest! ${remaining === 0 ? 'That\'s all 5 — go see Grandpa!' : `${5 - remaining}/5 found.`}`, 'event'));
     }
+    // Check Stage 2 eligibility (finding last collectible might be the final condition)
+    if (!r.save.stage2FinaleShown && checkStage2Eligible(r.save)) {
+      setTimeout(() => setShowStage2Finale(true), 800);
+    }
     return r;
   }
 
@@ -519,9 +680,9 @@ export default function Home() {
     const withToken = { ...withSkill, tokens: { ...withSkill.tokens, spent: withSkill.tokens.spent + 1 } };
     setSave(withToken);
     addLog(makeEntry('⭐', `Lesson complete! +${skillGained} Skill. Total: ${withToken.skill}/100`, 'good'));
-    // Bridge transition fires the first time skill crosses 25
-    if ((save.skill ?? 0) < 25 && (withToken.skill ?? 0) >= 25) {
-      setTimeout(() => setShowBridge(true), 600);
+    // Check stage 2 eligibility after skill gain
+    if (!withToken.stage2FinaleShown && checkStage2Eligible(withToken)) {
+      setTimeout(() => setShowStage2Finale(true), 800);
     }
   }
 
@@ -542,6 +703,9 @@ export default function Home() {
     setSave(withToken);
     addLog(makeEntry('👴', `Grandpa: "${activeChat.title}" — +1 Skill earned!`, 'event'));
     setActiveChat(null);
+    if (!withToken.stage2FinaleShown && checkStage2Eligible(withToken)) {
+      setTimeout(() => setShowStage2Finale(true), 800);
+    }
   }
 
   function handleNextDay() {
@@ -554,6 +718,7 @@ export default function Home() {
     updated = advanceBikeDay(updated);
     updated = advancePondDay(updated);
     updated = advanceSecondStandDay(updated);
+    updated = advanceStage2Day(updated);
     setSave(updated);
     const weatherEmojis: Record<string, string> = { sunny: '☀️', cloudy: '⛅', rainy: '🌧️', stormy: '⛈️' };
     const demandNote = weatherDemandMultiplier(updated.weather) < 1 ? ' Demand will be lower today.' : ' Great day for lemonade!';
@@ -634,6 +799,15 @@ export default function Home() {
             k === 'pet' ? 'puppy' : k
           )}
           onPickNext={handlePickNextGoal}
+        />
+      )}
+
+      {/* Stage 2 Finale */}
+      {showStage2Finale && save && (
+        <Stage2Finale
+          playerName={save.playerName}
+          characterEmoji={getCharacterEmoji(save.avatarId)}
+          onComplete={handleStage2FinaleComplete}
         />
       )}
 
@@ -753,6 +927,14 @@ export default function Home() {
             { id: 'tortoise', emoji: '🐢', label: 'Tortoise' },
             { id: 'buzzybee', emoji: '🐝', label: 'Buzzy' },
             { id: 'wisefox',  emoji: '🦊', label: 'Fox' },
+            // Stage 2 tabs
+            ...(save.worldUnlocks?.stage2 ? [
+              { id: 'bakery'    as const, emoji: '🥖', label: 'Bakery'   },
+              { id: 'employees' as const, emoji: '👥', label: 'Team'     },
+              ...(save.dogWalking ? [{ id: 'dogwalking' as const, emoji: '🐕', label: 'Dogs' }] : []),
+              { id: 'townbank'  as const, emoji: '🏦', label: 'Bank'     },
+              { id: 'townpark'  as const, emoji: '🌳', label: 'Park'     },
+            ] : []),
           ] as const).map(loc => (
             <button
               key={loc.id}
@@ -793,6 +975,41 @@ export default function Home() {
                 onHangOut={handleHangOutTreehouse}
                 onCatch={handleCatchButterfly}
                 onBuyAddon={handleBuyAddon}
+              />
+            ) : activeLocation === 'bakery' ? (
+              <BakeryPanel
+                save={save}
+                onRunShift={handleRunBakeryShift}
+                onSetPrice={handleSetBakeryPrice}
+                onRespondToCompetitor={handleRespondToCompetitor}
+                onOpenBakery={handleOpenBakery}
+              />
+            ) : activeLocation === 'employees' ? (
+              <EmployeesPanel
+                save={save}
+                onHire={handleHireEmployee}
+                onTrain={handleTrainEmployee}
+                onPromote={handlePromoteEmployee}
+                onAssign={handleAssignEmployee}
+              />
+            ) : activeLocation === 'dogwalking' ? (
+              <DogWalkingPanel
+                save={save}
+                onWalk={handleWalkDogs}
+                onUnlock={handleUnlockDogWalking}
+              />
+            ) : activeLocation === 'townbank' ? (
+              <TownBankPanel
+                save={save}
+                onDeposit={handleBankDeposit}
+                onWithdraw={handleBankWithdraw}
+                onTakeLoan={handleTakeLoan}
+              />
+            ) : activeLocation === 'townpark' ? (
+              <TownParkPanel
+                save={save}
+                onContribute={handleContributeToPark}
+                onAddAddition={handleAddParkAddition}
               />
             ) : activeLocation === 'grandpa' ? (
               <GrandpaPanel

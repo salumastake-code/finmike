@@ -71,6 +71,16 @@ export function loadSave(): PlayerSave | null {
     // ---- grandpaChatsToday ----
     if (save.grandpaChatsToday === undefined) save.grandpaChatsToday = 0;
 
+    // ---- Stage 2 worldUnlocks ----
+    if (save.worldUnlocks.stage2 === undefined) save.worldUnlocks.stage2 = false;
+    if (save.worldUnlocks.bakery === undefined) save.worldUnlocks.bakery = false;
+    if (save.worldUnlocks.townBank === undefined) save.worldUnlocks.townBank = false;
+    if (save.worldUnlocks.townPark === undefined) save.worldUnlocks.townPark = false;
+
+    // ---- Stage 2 arrays ----
+    if (save.employees === undefined) save.employees = [];
+    if (save.stage2FinaleShown === undefined) save.stage2FinaleShown = false;
+
     // ---- avatarId — default for old saves ----
     if (!save.avatarId || save.avatarId === 'default') save.avatarId = 'girl1';
 

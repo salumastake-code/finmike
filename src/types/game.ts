@@ -8,23 +8,41 @@ export type Weather = 'sunny' | 'cloudy' | 'rainy' | 'stormy';
 
 export type Season = 'spring' | 'summer' | 'fall' | 'winter';
 
-// ---- Mood (replaces numeric Happiness in Stage 1 UI) ----
+// ---- Mood ----
 export type Mood = 'great' | 'good' | 'okay' | 'sad';
 
 // ---- Life Meters ----
 export interface LifeMeters {
-  financialSecurity: number; // 0–100
+  financialSecurity: number;
   health: number;
-  happiness: number;         // 0–100 internal; converted to Mood for display
-  relationships: number;     // 0–100
+  happiness: number;
+  relationships: number;
   futureSecurity: number;
 }
 
-// ---- Piggy Bank (separate from Dream savings) ----
+// ---- Piggy Bank ----
 export interface PiggyBank {
-  balance: number;           // current balance
-  interestEarnedToday: number; // shown as daily drip in event log
+  balance: number;
+  interestEarnedToday: number;
   totalInterestEarned: number;
+}
+
+// ---- Town Bank (Stage 2) ----
+export interface TownBank {
+  balance: number;
+  interestEarnedToday: number;
+  totalInterestEarned: number;
+  loan?: BankLoan;
+}
+
+export interface BankLoan {
+  principal: number;        // original amount borrowed
+  totalRepayable: number;   // principal + interest
+  dailyPayment: number;     // auto-deducted each day
+  remainingDays: number;    // days left to repay
+  amountRepaid: number;
+  takenOnDay: number;
+  missedPayments: number;   // days where player couldn't cover payment
 }
 
 // ---- Dream Goal ----
@@ -35,7 +53,7 @@ export interface DreamGoal {
   cost: number;
   saved: number;
   unlocked: boolean;
-  unlocks?: string;      // world feature this goal unlocks e.g. 'garden' | 'pet' | 'treehouse'
+  unlocks?: string;
   interestEarnedToday?: number;
 }
 
@@ -45,77 +63,81 @@ export interface WorldUnlocks {
   pet: boolean;
   treehouse: boolean;
   bicycle: boolean;
+  // Stage 2
+  stage2: boolean;
+  bakery: boolean;
+  townBank: boolean;
+  townPark: boolean;
 }
 
 // ---- Garden ----
 export type CropId = 'strawberry' | 'tomato' | 'herb';
 
 export interface CropPlot {
-  id: string;            // unique plot id
+  id: string;
   cropId: CropId;
-  plantedDay: number;    // day number when planted
-  matureAt: number;      // days until ready (from plantedDay)
+  plantedDay: number;
+  matureAt: number;
   harvested: boolean;
-  damaged: boolean;      // storm damage
+  damaged: boolean;
 }
 
 export interface Garden {
-  plots: CropPlot[];     // up to 4 plots
+  plots: CropPlot[];
   totalHarvested: number;
-  marketInventory: Record<CropId, number>; // harvested crops ready to sell
+  marketInventory: Record<CropId, number>;
 }
 
 // ---- Pet ----
 export interface Pet {
   name: string;
   emoji: '🐶';
-  fed: boolean;          // fed today?
-  played: boolean;       // played today?
-  happiness: number;     // 0–100
+  fed: boolean;
+  played: boolean;
+  happiness: number;
   daysNeglected: number;
 }
 
 // ---- Treehouse ----
 export interface Treehouse {
-  visited: boolean;      // ever visited?
-  questGiven: boolean;   // grandpa quest given?
-  butterflies: string[]; // collected butterfly ids
-  decorations: string[]; // 'string_lights' | 'telescope' | 'flag' | 'rug'
+  visited: boolean;
+  questGiven: boolean;
+  butterflies: string[];
+  decorations: string[];
 }
 
 // ---- Lemonade Stand ----
 export interface LemonadeStand {
   owned: boolean;
-  supplyCount: number;   // lemons in inventory
-  pricePerCup: number;   // price player has set
-  helperShiftsToday: number; // paid helper shifts run today ($5 each, no energy cost)
+  supplyCount: number;
+  pricePerCup: number;
+  helperShiftsToday: number;
   hasUmbrella: boolean;
-  hasUpgrade: boolean;   // $40 stand upgrade (better appearance → more customers)
+  hasUpgrade: boolean;
   totalEarned: number;
 }
 
 // ---- Second Lemonade Stand ----
 export interface SecondStand {
-  unlockedOnDay: number;   // day it was unlocked
-  supplyCount: number;     // lemons allocated to this stand
+  unlockedOnDay: number;
+  supplyCount: number;
   pricePerCup: number;
-  helperHiredToday: boolean; // player must actively hire each day
+  helperHiredToday: boolean;
   totalEarned: number;
   totalDaysRun: number;
 }
 
-// ---- Lemon Tree (individual tree instance) ----
+// ---- Lemon Tree ----
 export interface LemonTreeInstance {
   id: string;
-  plantedOnDay: number;  // which game day it was planted
-  daysOld: number;       // days since planted
-  matureAt: number;      // days until first harvest (3)
-  lastHarvestedDay: number; // day number of last harvest (0 = never)
-  lemonYield: number;    // lemons per harvest (10)
-  harvestEveryDays: number; // days between harvests (3)
+  plantedOnDay: number;
+  daysOld: number;
+  matureAt: number;
+  lastHarvestedDay: number;
+  lemonYield: number;
+  harvestEveryDays: number;
 }
 
-// Legacy single-tree shape kept for migration compatibility
 export interface LemonTree {
   planted: boolean;
   daysOld: number;
@@ -125,17 +147,17 @@ export interface LemonTree {
 
 // ---- Activity Tokens ----
 export interface ActivityTokens {
-  total: number;         // tokens available this day (always 5)
-  spent: number;         // tokens used today
+  total: number;
+  spent: number;
 }
 
-// ---- Skill & Grandpa Lessons ----
+// ---- Grandpa Lessons ----
 export interface GrandpaLesson {
   id: string;
   title: string;
-  concept: string;        // e.g. 'profit' | 'saving' | 'opportunity_cost' | 'hiring' | 'diversification'
+  concept: string;
   completed: boolean;
-  skillReward: number;    // 3 for named lessons, 1 for simple sessions
+  skillReward: number;
 }
 
 // ---- Bike ----
@@ -147,18 +169,18 @@ export interface BikeUpgradeInfo {
   emoji: string;
   cost: number;
   desc: string;
-  raceBonus: number;       // added to race score
-  deliveryBonus: boolean;  // basket lets you carry 10 lemons instead of 5
+  raceBonus: number;
+  deliveryBonus: boolean;
 }
 
 export interface Bike {
   upgrades: BikeUpgrade[];
   racesEntered: number;
   racesWon: number;
-  lastRaceDay: number;     // day number of last race (race is weekly = every 7 days)
-  lastDeliveryDay: number; // day number of last bakery delivery
-  deliveriesToday: number;   // deliveries done today (resets each day)
-  totalDeliveries: number;   // lifetime total
+  lastRaceDay: number;
+  lastDeliveryDay: number;
+  deliveriesToday: number;
+  totalDeliveries: number;
 }
 
 // ---- Pond & Collectibles ----
@@ -167,11 +189,88 @@ export type CollectibleId = 'blue_feather' | 'smooth_stone' | 'old_coin' | 'rare
 export interface Pond {
   fishingTripsToday: number;
   totalFishCaught: number;
-  collectibles: CollectibleId[];  // grandpa's 5-item quest items found
+  collectibles: CollectibleId[];
   lastFishingDay: number;
 }
 
-// ---- Neighbor / Mentor Character ----
+// ============================================================
+// STAGE 2 TYPES
+// ============================================================
+
+// ---- Bakery ----
+export type BakeryProductId = 'lemon_muffin' | 'bread' | 'cake';
+export type BakeryPriceLevel = 'low' | 'medium' | 'high';
+
+export interface BakeryProduct {
+  id: BakeryProductId;
+  name: string;
+  emoji: string;
+  skillRequired: number;
+  ingredientCost: number; // per batch
+  batchSize: number;      // units per batch
+  baseSellPrice: { low: number; medium: number; high: number };
+}
+
+export interface Bakery {
+  unlockedOnDay: number;
+  priceLevel: BakeryPriceLevel;
+  isOpen: boolean;
+  batchesToday: number;
+  totalEarned: number;
+  totalSpent: number;     // ingredient costs
+  todayRevenue: number;
+  todayExpenses: number;
+  reputation: number;     // 0–100 (shared with player reputation)
+  // Competition event
+  competitorActive: boolean;
+  competitorStartDay: number;
+  competitorResponseChosen: string | null; // 'lower_price' | 'advertise' | 'train' | 'improve' | 'nothing'
+  competitorResolvesDay: number;
+}
+
+// ---- Employee ----
+export type EmployeeAssignment = 'stand1' | 'stand2' | 'bakery' | 'dog_walking' | 'unassigned';
+export type EmployeeStage = 'hired' | 'trained' | 'manager';
+
+export interface Employee {
+  id: string;
+  name: string;
+  emoji: string;
+  hiredOnDay: number;
+  wage: number;           // daily wage
+  trainingLevel: number;  // 0–100
+  stage: EmployeeStage;
+  assignment: EmployeeAssignment;
+  trainingDaysRemaining: number; // active training sessions left
+  totalEarnedForPlayer: number;
+}
+
+// ---- Dog Walking ----
+export interface DogWalking {
+  unlockedOnDay: number;
+  walksToday: number;
+  totalWalks: number;
+  walkerEmployeeId: string | null; // null = player does it
+  reputationFromWalking: number;
+  mishapCount: number;    // triggers reputation hit every 15-20 walks
+}
+
+// ---- Town Park (Stage 2 Dream Project) ----
+export interface TownPark {
+  fundsSaved: number;     // toward $1000-$1500 goal
+  buildProgress: number;  // 0–100 (energy invested)
+  built: boolean;
+  additions: string[];    // 'basketball_court' | 'flowers'
+  unlockedOpportunities: string[]; // 'wedding_order' | 'private_event' | 'mentor' | 'real_estate'
+}
+
+// ---- Reputation ----
+export interface Reputation {
+  score: number;          // 0–100
+  history: { day: number; delta: number; reason: string }[];
+}
+
+// ---- Neighbor ----
 export interface Neighbor {
   id: string;
   name: string;
@@ -193,7 +292,7 @@ export interface Quest {
   id: string;
   title: string;
   description: string;
-  givenBy: string;       // neighbor id
+  givenBy: string;
   reward: QuestReward;
   completed: boolean;
   active: boolean;
@@ -230,11 +329,15 @@ export interface PlayerSave {
   totalEarned: number;
   totalSpent: number;
 
-  // Piggy Bank (separate from dream savings)
+  // Savings
   piggyBank: PiggyBank;
+  townBank?: TownBank;      // Stage 2
 
-  // Skill (0–100, persistent across all stages)
+  // Skill
   skill: number;
+
+  // Reputation (Stage 2)
+  reputation?: Reputation;
 
   // World
   dayNumber: number;
@@ -246,16 +349,16 @@ export interface PlayerSave {
   lifeMeters: LifeMeters;
   dreamGoal: DreamGoal;
 
-  // Grandpa lessons
+  // Grandpa
   grandpaLessons: GrandpaLesson[];
-  grandpaChatsToday: number; // quick chats used today (max 2)
+  grandpaChatsToday: number;
 
   // Businesses / assets
   lemonadeStand: LemonadeStand;
-  lemonTree: LemonTree;       // legacy (kept for save compat)
-  lemonTrees: LemonTreeInstance[]; // multiple trees
+  lemonTree: LemonTree;
+  lemonTrees: LemonTreeInstance[];
 
-  // Unlockable world features
+  // Stage 1 unlockables
   garden?: Garden;
   pet?: Pet;
   treehouse?: Treehouse;
@@ -264,17 +367,24 @@ export interface PlayerSave {
 
   // Characters
   neighbors: Neighbor[];
-
-  // Quests
   quests: Quest[];
 
-  // Second lemonade stand (unlocked via Grandpa quest)
+  // Second lemonade stand
   secondStand?: SecondStand;
 
   // World unlocks
   worldUnlocks: WorldUnlocks;
 
+  // Stage 2 systems
+  bakery?: Bakery;
+  employees?: Employee[];
+  dogWalking?: DogWalking;
+  townPark?: TownPark;
+
   // Collections
   seedCollection: string[];
   badges: string[];
+
+  // Stage 2 state
+  stage2FinaleShown?: boolean; // Grandpa's Stage 1 finale dialogue seen
 }

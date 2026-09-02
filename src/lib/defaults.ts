@@ -175,11 +175,11 @@ export function createNewSave(playerName: string, age: number, dreamGoalId: stri
     grandpaChatsToday: 0,
 
     worldUnlocks: {
-      garden: false,
-      pet: false,
-      treehouse: false,
-      bicycle: false,
+      garden: false, pet: false, treehouse: false, bicycle: false,
+      stage2: false, bakery: false, townBank: false, townPark: false,
     },
+    employees: [],
+    stage2FinaleShown: false,
 
     lemonadeStand: {
       owned: true,
