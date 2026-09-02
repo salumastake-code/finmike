@@ -4,8 +4,23 @@ import { DREAM_GOALS } from '@/lib/defaults';
 import { decodeWorldCode } from '@/lib/worldcode';
 import type { PlayerSave } from '@/types/game';
 
+export const CHARACTER_OPTIONS = [
+  { id: 'girl1',  emoji: '👧', label: 'Girl' },
+  { id: 'boy1',   emoji: '👦', label: 'Boy' },
+  { id: 'girl2',  emoji: '👧🏽', label: 'Girl' },
+  { id: 'boy2',   emoji: '👦🏽', label: 'Boy' },
+  { id: 'girl3',  emoji: '👧🏿', label: 'Girl' },
+  { id: 'boy3',   emoji: '👦🏿', label: 'Boy' },
+  { id: 'girl4',  emoji: '👧🏻', label: 'Girl' },
+  { id: 'boy4',   emoji: '👦🏻', label: 'Boy' },
+];
+
+export function getCharacterEmoji(avatarId: string): string {
+  return CHARACTER_OPTIONS.find(c => c.id === avatarId)?.emoji ?? '🧒';
+}
+
 interface Props {
-  onComplete: (name: string, age: number, dreamGoalId: string) => void;
+  onComplete: (name: string, age: number, dreamGoalId: string, avatarId: string) => void;
   onLoadCode: (save: PlayerSave) => void;
 }
 
@@ -14,9 +29,12 @@ export default function Onboarding({ onComplete, onLoadCode }: Props) {
   const [name, setName] = useState('');
   const [age, setAge] = useState(8);
   const [goalId, setGoalId] = useState(DREAM_GOALS[0].id);
+  const [avatarId, setAvatarId] = useState(CHARACTER_OPTIONS[0].id);
   const [showLoad, setShowLoad] = useState(false);
   const [loadInput, setLoadInput] = useState('');
   const [loadError, setLoadError] = useState('');
+
+  const selectedChar = CHARACTER_OPTIONS.find(c => c.id === avatarId) ?? CHARACTER_OPTIONS[0];
 
   function handleLoadSubmit() {
     setLoadError('');
@@ -74,6 +92,7 @@ export default function Onboarding({ onComplete, onLoadCode }: Props) {
               placeholder="Enter your name…"
               className="w-full border-2 border-green-200 rounded-xl px-4 py-3 text-lg text-center focus:outline-none focus:border-green-400 mb-4"
               maxLength={20}
+              onKeyDown={e => { if (e.key === 'Enter' && name.trim()) setStep(1); }}
             />
             <button
               disabled={!name.trim()}
@@ -91,13 +110,46 @@ export default function Onboarding({ onComplete, onLoadCode }: Props) {
           </>
         )}
 
-        {/* ---- Step 1: Age ---- */}
+        {/* ---- Step 1: Character picker ---- */}
         {!showLoad && step === 1 && (
           <>
-            <div className="text-6xl mb-4">🎂</div>
-            <h2 className="text-xl font-bold text-green-700 mb-2">Hi, {name}!</h2>
+            <div className="text-5xl mb-3">{selectedChar.emoji}</div>
+            <h2 className="text-xl font-bold text-green-700 mb-1">Hi, {name}!</h2>
+            <p className="text-gray-500 text-sm mb-4">Pick your character — this is you in the game!</p>
+
+            <div className="grid grid-cols-4 gap-3 mb-6">
+              {CHARACTER_OPTIONS.map(char => (
+                <button
+                  key={char.id}
+                  onClick={() => setAvatarId(char.id)}
+                  className={`aspect-square flex items-center justify-center text-4xl rounded-2xl border-3 transition-all ${
+                    avatarId === char.id
+                      ? 'border-green-400 bg-green-50 scale-110 shadow-md'
+                      : 'border-gray-200 hover:border-green-200 hover:bg-gray-50'
+                  }`}
+                  style={{ border: avatarId === char.id ? '3px solid #4ade80' : '2px solid #e5e7eb' }}
+                >
+                  {char.emoji}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setStep(2)}
+              className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl text-lg transition-colors"
+            >
+              That's me! →
+            </button>
+          </>
+        )}
+
+        {/* ---- Step 2: Age ---- */}
+        {!showLoad && step === 2 && (
+          <>
+            <div className="text-6xl mb-4">{selectedChar.emoji}</div>
+            <h2 className="text-xl font-bold text-green-700 mb-2">How old are you?</h2>
             <p className="text-gray-600 mb-4 text-sm">
-              How old are you? Your world starts at the right size for you.
+              Your world starts at the right size for you.
             </p>
             <div className="flex items-center justify-center gap-4 mb-6">
               <button
@@ -111,7 +163,7 @@ export default function Onboarding({ onComplete, onLoadCode }: Props) {
               >+</button>
             </div>
             <button
-              onClick={() => setStep(2)}
+              onClick={() => setStep(3)}
               className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl text-lg transition-colors"
             >
               That's right! →
@@ -119,8 +171,8 @@ export default function Onboarding({ onComplete, onLoadCode }: Props) {
           </>
         )}
 
-        {/* ---- Step 2: Dream Goal ---- */}
-        {!showLoad && step === 2 && (
+        {/* ---- Step 3: Dream Goal ---- */}
+        {!showLoad && step === 3 && (
           <>
             <div className="text-5xl mb-3">✨</div>
             <h2 className="text-xl font-bold text-green-700 mb-2">Pick your First Dream</h2>
@@ -151,7 +203,7 @@ export default function Onboarding({ onComplete, onLoadCode }: Props) {
               ))}
             </div>
             <button
-              onClick={() => onComplete(name.trim(), age, goalId)}
+              onClick={() => onComplete(name.trim(), age, goalId, avatarId)}
               className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl text-lg transition-colors"
             >
               Let's go! 🚀

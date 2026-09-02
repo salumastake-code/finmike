@@ -71,6 +71,9 @@ export function loadSave(): PlayerSave | null {
     // ---- grandpaChatsToday ----
     if (save.grandpaChatsToday === undefined) save.grandpaChatsToday = 0;
 
+    // ---- avatarId — default for old saves ----
+    if (!save.avatarId || save.avatarId === 'default') save.avatarId = 'girl1';
+
     return save as PlayerSave;
   } catch {
     return null;

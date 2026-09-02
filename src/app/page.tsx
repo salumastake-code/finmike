@@ -21,8 +21,9 @@ import { goFishing, initPond, advancePondDay, COLLECTIBLES, ALL_COLLECTIBLES } f
 import type { FishingResult } from '@/lib/pond';
 import type { CropId } from '@/types/game';
 
-import Onboarding from '@/components/Onboarding';
+import Onboarding, { getCharacterEmoji } from '@/components/Onboarding';
 import GrandpaIntro from '@/components/GrandpaIntro';
+import BridgeTransition from '@/components/BridgeTransition';
 import DreamCelebration, { NEXT_GOALS } from '@/components/DreamCelebration';
 import GardenPanel from '@/components/GardenPanel';
 import PetPanel, { READOPT_COST } from '@/components/PetPanel';
@@ -52,6 +53,7 @@ export default function Home() {
   const [showWorldCode, setShowWorldCode] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [activeChat, setActiveChat] = useState<typeof QUICK_CHATS[0] | null>(null);
+  const [showBridge, setShowBridge] = useState(false);
   const [activeLocation, setActiveLocation] = useState<GameLocation | null>('stand');
 
   useEffect(() => {
@@ -68,10 +70,10 @@ export default function Home() {
     setLog(prev => [entry, ...prev].slice(0, 20));
   }, []);
 
-  function handleOnboardingComplete(name: string, age: number, dreamGoalId: string) {
+  function handleOnboardingComplete(name: string, age: number, dreamGoalId: string, avatarId: string) {
     const newSave = createNewSave(name, age, dreamGoalId);
-    setSave(newSave);
-    setShowIntro(true); // show Grandpa intro for new players
+    setSave({ ...newSave, avatarId });
+    setShowIntro(true);
   }
 
   // ---- Actions ----
@@ -517,6 +519,10 @@ export default function Home() {
     const withToken = { ...withSkill, tokens: { ...withSkill.tokens, spent: withSkill.tokens.spent + 1 } };
     setSave(withToken);
     addLog(makeEntry('⭐', `Lesson complete! +${skillGained} Skill. Total: ${withToken.skill}/100`, 'good'));
+    // Bridge transition fires the first time skill crosses 25
+    if ((save.skill ?? 0) < 25 && (withToken.skill ?? 0) >= 25) {
+      setTimeout(() => setShowBridge(true), 600);
+    }
   }
 
   function handleSimpleLearn() {
@@ -631,6 +637,15 @@ export default function Home() {
         />
       )}
 
+      {/* Bridge transition */}
+      {showBridge && save && (
+        <BridgeTransition
+          characterEmoji={getCharacterEmoji(save.avatarId)}
+          toStage={2}
+          onComplete={() => setShowBridge(false)}
+        />
+      )}
+
       {/* Grandpa quick chat modal */}
       {activeChat && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center p-4">
@@ -661,7 +676,7 @@ export default function Home() {
       {/* Top bar */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10 shadow-sm">
         <div className="flex items-center gap-2">
-          <span className="text-xl">🌍</span>
+          <span className="text-xl">{getCharacterEmoji(save.avatarId)}</span>
           <span className="font-bold text-green-700 text-sm">{save.playerName}'s World</span>
           <span className="text-xs text-gray-400">· Day {save.dayNumber}</span>
           {/* Mood icon */}
