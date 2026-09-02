@@ -248,6 +248,7 @@ export interface PlayerSave {
 
   // Grandpa lessons
   grandpaLessons: GrandpaLesson[];
+  grandpaChatsToday: number; // quick chats used today (max 2)
 
   // Businesses / assets
   lemonadeStand: LemonadeStand;

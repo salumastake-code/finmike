@@ -68,6 +68,9 @@ export function loadSave(): PlayerSave | null {
     // ---- lemonadeStand.totalEarned ----
     if (save.lemonadeStand.totalEarned === undefined) save.lemonadeStand.totalEarned = 0;
 
+    // ---- grandpaChatsToday ----
+    if (save.grandpaChatsToday === undefined) save.grandpaChatsToday = 0;
+
     return save as PlayerSave;
   } catch {
     return null;

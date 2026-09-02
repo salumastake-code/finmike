@@ -91,9 +91,14 @@ export interface HireShiftResult { save: PlayerSave; cupsServed: number; revenue
 
 // ---- Hire someone for one shift ($5, no energy cost) ----
 // 25% chance of a bad shift — helper was slow/distracted, fewer cups sold
+const MAX_HIRED_SHIFTS_PER_DAY = 5;
+
 export function hireForShift(save: PlayerSave): HireShiftResult | { error: string } {
   if (save.coins < HELPER_SHIFT_COST) return { error: `Hiring someone for a shift costs $${HELPER_SHIFT_COST}. You only have $${save.coins}.` };
   if (save.lemonadeStand.supplyCount === 0) return { error: 'You\'re out of lemons! Buy supplies first.' };
+  if ((save.lemonadeStand.helperShiftsToday ?? 0) >= MAX_HIRED_SHIFTS_PER_DAY) {
+    return { error: `You can only hire ${MAX_HIRED_SHIFTS_PER_DAY} shifts per day. Come back tomorrow!` };
+  }
 
   const { weather, lemonadeStand } = save;
   const baseCustomers = simulateCustomers(weather, lemonadeStand.pricePerCup, lemonadeStand.hasUpgrade);
@@ -248,6 +253,7 @@ export function advanceDay(save: PlayerSave): PlayerSave {
   updated.dayNumber += 1;
   updated.tokens = { ...save.tokens, spent: 0 };
   updated.lemonadeStand = { ...save.lemonadeStand, helperShiftsToday: 0 };
+  updated.grandpaChatsToday = 0;
 
   // Grow all lemon trees
   updated.lemonTrees = (save.lemonTrees ?? []).map(t => ({ ...t, daysOld: t.daysOld + 1 }));

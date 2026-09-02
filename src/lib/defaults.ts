@@ -172,6 +172,7 @@ export function createNewSave(playerName: string, age: number, dreamGoalId: stri
     },
 
     grandpaLessons: GRANDPA_LESSONS,
+    grandpaChatsToday: 0,
 
     worldUnlocks: {
       garden: false,

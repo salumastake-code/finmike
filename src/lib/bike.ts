@@ -7,11 +7,20 @@ import { spendToken } from './economy';
 
 export const BIKE_UPGRADES: BikeUpgradeInfo[] = [
   {
+    id: 'basket',
+    name: 'Delivery Basket',
+    emoji: '🧺',
+    cost: 30,
+    desc: 'Carry 10 lemons at once instead of 5. Doubles delivery earnings!',
+    raceBonus: 0,
+    deliveryBonus: true,
+  },
+  {
     id: 'tires',
     name: 'Fast Tires',
     emoji: '🛞',
-    cost: 20,
-    desc: 'Grip the road better. Helps in races and makes deliveries faster.',
+    cost: 60,
+    desc: 'Grip the road better. Big boost in races.',
     raceBonus: 15,
     deliveryBonus: false,
   },
@@ -19,26 +28,17 @@ export const BIKE_UPGRADES: BikeUpgradeInfo[] = [
     id: 'brakes',
     name: 'Better Brakes',
     emoji: '🔧',
-    cost: 15,
-    desc: 'Corner faster. Gives you an edge on tricky race tracks.',
+    cost: 80,
+    desc: 'Corner faster. Gives you a real edge on tricky race tracks.',
     raceBonus: 10,
     deliveryBonus: false,
-  },
-  {
-    id: 'basket',
-    name: 'Delivery Basket',
-    emoji: '🧺',
-    cost: 10,
-    desc: 'Carry 10 lemons at once instead of 5. Doubles delivery earnings!',
-    raceBonus: 0,
-    deliveryBonus: true,
   },
   {
     id: 'paint',
     name: 'Cool Paint Job',
     emoji: '🎨',
-    cost: 12,
-    desc: 'Your bike looks amazing. Small confidence boost in races.',
+    cost: 50,
+    desc: 'Your bike looks amazing. Confidence boost in races.',
     raceBonus: 5,
     deliveryBonus: false,
   },
@@ -147,10 +147,10 @@ export function runRace(save: PlayerSave, miniGameScore = 0.5): RaceResult | { e
     .reduce((sum, u) => sum + u.raceBonus, 0);
   const playerScore = Math.min(100, Math.round(miniGameScore * 40 + upgradeBonus + 15));
 
-  // Two opponents — get harder over time
-  const difficulty = Math.min(save.bike.racesEntered * 5, 30);
-  const opp1 = 30 + Math.floor(Math.random() * 40) + difficulty;
-  const opp2 = 25 + Math.floor(Math.random() * 35) + difficulty;
+  // Two opponents — start tough, get harder over time
+  const difficulty = Math.min(save.bike.racesEntered * 8, 40);
+  const opp1 = 50 + Math.floor(Math.random() * 30) + difficulty;
+  const opp2 = 45 + Math.floor(Math.random() * 30) + difficulty;
   const opponentScore = Math.max(opp1, opp2);
 
   const won = playerScore > opponentScore;

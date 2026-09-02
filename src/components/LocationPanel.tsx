@@ -107,7 +107,8 @@ export default function LocationPanel({
       </button>
       {save.lemonadeStand.helperShiftsToday > 0 && (
         <div className="text-xs text-center text-purple-400">
-          👦 {save.lemonadeStand.helperShiftsToday} hired shift{save.lemonadeStand.helperShiftsToday > 1 ? 's' : ''} today
+          👦 {save.lemonadeStand.helperShiftsToday}/5 hired shifts today
+          {save.lemonadeStand.helperShiftsToday >= 5 && ' · limit reached'}
         </div>
       )}
 

@@ -98,19 +98,29 @@ export default function GrandpaPanel({ save, onLearnLesson, onSimpleLearn, onClo
         </div>
       )}
 
-      {/* Quick learn (+1 skill) */}
-      <button
-        onClick={onSimpleLearn}
-        disabled={tokensLeft < 1}
-        className="w-full flex items-center gap-3 p-3.5 bg-gray-50 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed border-2 border-gray-200 rounded-2xl transition-all"
-      >
-        <span className="text-2xl">💬</span>
-        <div className="flex-1 text-left">
-          <div className="text-sm font-bold text-gray-700">Chat with Grandpa</div>
-          <div className="text-xs text-gray-400">Quick advice · earn +1 Skill</div>
-        </div>
-        <span className="text-xs bg-gray-200 text-gray-600 rounded-xl px-2 py-1 font-bold">1⚡</span>
-      </button>
+      {/* Quick learn (+1 skill, max 2/day) */}
+      {(() => {
+        const chatsLeft = 2 - (save.grandpaChatsToday ?? 0);
+        const canChat = chatsLeft > 0 && tokensLeft >= 1;
+        return (
+          <button
+            onClick={onSimpleLearn}
+            disabled={!canChat}
+            className="w-full flex items-center gap-3 p-3.5 bg-gray-50 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed border-2 border-gray-200 rounded-2xl transition-all"
+          >
+            <span className="text-2xl">💬</span>
+            <div className="flex-1 text-left">
+              <div className="text-sm font-bold text-gray-700">Chat with Grandpa</div>
+              <div className="text-xs text-gray-400">
+                {chatsLeft > 0
+                  ? `Quick lesson · earn +1 Skill · ${chatsLeft} chat${chatsLeft !== 1 ? 's' : ''} left today`
+                  : 'Come back tomorrow — Grandpa needs his rest! (2/day limit)'}
+              </div>
+            </div>
+            {canChat && <span className="text-xs bg-gray-200 text-gray-600 rounded-xl px-2 py-1 font-bold">1⚡</span>}
+          </button>
+        );
+      })()}
 
       {/* Completed lessons */}
       {completedLessons.length > 0 && (

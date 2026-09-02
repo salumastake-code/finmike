@@ -25,9 +25,10 @@ import Onboarding from '@/components/Onboarding';
 import GrandpaIntro from '@/components/GrandpaIntro';
 import DreamCelebration, { NEXT_GOALS } from '@/components/DreamCelebration';
 import GardenPanel from '@/components/GardenPanel';
-import PetPanel from '@/components/PetPanel';
+import PetPanel, { READOPT_COST } from '@/components/PetPanel';
 import TreehousePanel, { visitHappinessBonus } from '@/components/TreehousePanel';
 import GrandpaPanel from '@/components/GrandpaPanel';
+import GrandpaChat, { QUICK_CHATS } from '@/components/GrandpaChat';
 import BikePanel from '@/components/BikePanel';
 import PondPanel from '@/components/PondPanel';
 import SecondStandPanel from '@/components/SecondStandPanel';
@@ -50,6 +51,7 @@ export default function Home() {
   const [showIntro, setShowIntro] = useState(false);
   const [showWorldCode, setShowWorldCode] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [activeChat, setActiveChat] = useState<typeof QUICK_CHATS[0] | null>(null);
   const [activeLocation, setActiveLocation] = useState<GameLocation | null>('stand');
 
   useEffect(() => {
@@ -234,6 +236,14 @@ export default function Home() {
     if (!save) return;
     setSave({ ...save, pet: initPet(name) });
     addLog(makeEntry('🐶', `${name} is home! Make sure to feed and play every day.`, 'event'));
+  }
+
+  function handleReadopt(name: string) {
+    if (!save) return;
+    if (save.coins < READOPT_COST) { addLog(makeEntry('❌', `You need $${READOPT_COST} to adopt a new puppy.`, 'bad')); return; }
+    setSave({ ...save, coins: save.coins - READOPT_COST, totalSpent: save.totalSpent + READOPT_COST, pet: initPet(name), worldUnlocks: { ...save.worldUnlocks, pet: true } });
+    addLog(makeEntry('🐶', `${name} is home! You gave them a second chance — don't forget to feed and play every day.`, 'event'));
+    addLog(makeEntry('👴', 'Grandpa: "Every pet deserves a caring home. And every kid deserves a second chance too."', 'neutral'));
   }
 
   // ---- Treehouse handlers ----
@@ -513,18 +523,19 @@ export default function Home() {
     if (!save) return;
     const tokensLeft = save.tokens.total - save.tokens.spent;
     if (tokensLeft < 1) { addLog(makeEntry('❌', 'Not enough energy to chat with Grandpa today.', 'bad')); return; }
-    const chats = [
-      "Always pay yourself first — even a little bit into savings adds up.",
-      "Customers care about value, not just price. Give them a reason to come back.",
-      "The best time to plant a tree was yesterday. The second best time is today.",
-      "Keep track of what comes in and what goes out. That awareness is half the battle.",
-      "When something goes wrong, ask: what can I learn from this?",
-    ];
-    const line = chats[save.dayNumber % chats.length];
+    if ((save.grandpaChatsToday ?? 0) >= 2) { addLog(makeEntry('👴', 'Grandpa needs his rest! Come back tomorrow for more chats.', 'neutral')); return; }
+    // Pick a chat seeded by day + chat count so it rotates predictably
+    const chatIdx = (save.dayNumber * 2 + (save.grandpaChatsToday ?? 0)) % QUICK_CHATS.length;
+    setActiveChat(QUICK_CHATS[chatIdx]);
+  }
+
+  function handleChatComplete() {
+    if (!save || !activeChat) return;
     const withSkill = gainSkill(save, 1);
-    const withToken = { ...withSkill, tokens: { ...withSkill.tokens, spent: withSkill.tokens.spent + 1 } };
+    const withToken = { ...withSkill, tokens: { ...withSkill.tokens, spent: withSkill.tokens.spent + 1 }, grandpaChatsToday: (withSkill.grandpaChatsToday ?? 0) + 1 };
     setSave(withToken);
-    addLog(makeEntry('👴', `Grandpa: "${line}" (+1 Skill)`, 'event'));
+    addLog(makeEntry('👴', `Grandpa: "${activeChat.title}" — +1 Skill earned!`, 'event'));
+    setActiveChat(null);
   }
 
   function handleNextDay() {
@@ -618,6 +629,15 @@ export default function Home() {
           )}
           onPickNext={handlePickNextGoal}
         />
+      )}
+
+      {/* Grandpa quick chat modal */}
+      {activeChat && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-sm p-5 shadow-2xl mb-2">
+            <GrandpaChat chat={activeChat} onComplete={handleChatComplete} />
+          </div>
+        </div>
       )}
 
       {/* Grandpa intro overlay */}
@@ -749,6 +769,7 @@ export default function Home() {
                 onFeed={handleFeedPet}
                 onPlay={handlePlayWithPet}
                 onNamePet={handleNamePet}
+                onReadopt={handleReadopt}
               />
             ) : activeLocation === 'treehouse' ? (
               <TreehousePanel
