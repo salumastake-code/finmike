@@ -149,8 +149,14 @@ export default function BakeryPanel({ save, onRunShift, onSetPrice, onRespondToC
         )}
         {availableProducts.map(product => {
           const pricePerUnit = product.baseSellPrice[bakery.priceLevel];
-          const estimatedRevenue = product.batchSize * pricePerUnit;
-          const totalExpenses = product.ingredientCost + BAKERY_DAILY_RENT + BAKERY_DAILY_MAINTENANCE;
+          // Mirror the demand calculation from runBakeryShift so the estimate is accurate
+          const repMod = (bakery.reputation ?? 50) / 100;
+          const competitorPenalty = bakery.competitorActive ? 0.8 : 1;
+          const priceDemandMod = bakery.priceLevel === 'low' ? 1.2 : bakery.priceLevel === 'medium' ? 1.0 : 0.6;
+          const estimatedUnitsSold = Math.min(product.batchSize, Math.floor(product.batchSize * repMod * competitorPenalty * priceDemandMod));
+          const estimatedRevenue = estimatedUnitsSold * pricePerUnit;
+          const fixedCosts = BAKERY_DAILY_RENT + BAKERY_DAILY_MAINTENANCE;
+          const totalExpenses = product.ingredientCost + fixedCosts;
           const estimatedProfit = estimatedRevenue - totalExpenses;
           return (
             <button key={product.id} onClick={() => onRunShift(product.id as BakeryProductId)}
@@ -160,7 +166,11 @@ export default function BakeryPanel({ save, onRunShift, onSetPrice, onRespondToC
               <div className="flex-1 text-left text-sm">
                 Bake {product.name}
                 <div className="text-xs opacity-80 font-normal">
-                  ${product.ingredientCost} ingredients → ~${estimatedRevenue} revenue · ~${estimatedProfit > 0 ? `+${estimatedProfit}` : estimatedProfit} profit
+                  ~{estimatedUnitsSold}/{product.batchSize} sold · ${product.ingredientCost} ingredients + ${fixedCosts} overhead
+                </div>
+                <div className={`text-xs font-bold ${estimatedProfit >= 0 ? 'text-white' : 'text-red-200'}`}>
+                  Est. {estimatedProfit >= 0 ? `+$${estimatedProfit}` : `-$${Math.abs(estimatedProfit)}`} profit
+                  {bakery.competitorActive && <span className="ml-1 opacity-75">(rival −20%)</span>}
                 </div>
               </div>
               <span className="text-xs bg-black/20 rounded-lg px-2 py-1">1⚡</span>

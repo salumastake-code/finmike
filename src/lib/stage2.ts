@@ -16,27 +16,30 @@ export const BAKERY_PRODUCTS: Record<BakeryProductId, {
 }> = {
   lemon_muffin: {
     id: 'lemon_muffin', name: 'Lemon Muffin', emoji: '🧁',
-    skillRequired: 25, ingredientCost: 15, batchSize: 8,
-    baseSellPrice: { low: 2, medium: 3, high: 5 },
+    skillRequired: 25, ingredientCost: 10, batchSize: 10,
+    // 10 muffins × $3 medium = $30 revenue − $10 ingredients − $10 overhead = +$10 profit ✓
+    baseSellPrice: { low: 2, medium: 3, high: 4 },
     reputationImpact: { low: 1, medium: 2, high: -1 },
   },
   bread: {
     id: 'bread', name: 'Bread', emoji: '🍞',
-    skillRequired: 30, ingredientCost: 20, batchSize: 6,
-    baseSellPrice: { low: 3, medium: 5, high: 8 },
+    skillRequired: 30, ingredientCost: 15, batchSize: 8,
+    // 8 loaves × $5 medium = $40 revenue − $15 ingredients − $10 overhead = +$15 profit ✓
+    baseSellPrice: { low: 3, medium: 5, high: 7 },
     reputationImpact: { low: 1, medium: 2, high: -2 },
   },
   cake: {
     id: 'cake', name: 'Cake', emoji: '🎂',
-    skillRequired: 35, ingredientCost: 30, batchSize: 4,
-    baseSellPrice: { low: 8, medium: 14, high: 22 },
+    skillRequired: 35, ingredientCost: 25, batchSize: 5,
+    // 5 cakes × $12 medium = $60 revenue − $25 ingredients − $10 overhead = +$25 profit ✓
+    baseSellPrice: { low: 8, medium: 12, high: 18 },
     reputationImpact: { low: 0, medium: 2, high: -3 },
   },
 };
 
 export const BAKERY_OPEN_COST = 2000; // dream project cost to open bakery
-export const BAKERY_DAILY_RENT = 15;
-export const BAKERY_DAILY_MAINTENANCE = 5;
+export const BAKERY_DAILY_RENT = 8;
+export const BAKERY_DAILY_MAINTENANCE = 2;
 
 export function initBakery(dayNumber: number): Bakery {
   return {
