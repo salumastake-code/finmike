@@ -180,6 +180,8 @@ export function createNewSave(playerName: string, age: number, dreamGoalId: stri
     },
     employees: [],
     stage2FinaleShown: false,
+    dayPlanConfirmed: true,   // new saves start with plan confirmed (no employees yet)
+    daySummaryReviewed: true, // new saves start with summary reviewed
 
     lemonadeStand: {
       owned: true,

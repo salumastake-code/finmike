@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import type { PlayerSave, BakeryProductId, BakeryPriceLevel } from '@/types/game';
-import { BAKERY_PRODUCTS, BAKERY_DAILY_RENT, BAKERY_DAILY_MAINTENANCE } from '@/lib/stage2';
+import { BAKERY_PRODUCTS, BAKERY_DAILY_RENT, BAKERY_DAILY_MAINTENANCE, BAKERY_PURCHASE_COST, LOAN_INTEREST_RATE } from '@/lib/stage2';
 
 interface Props {
   save: PlayerSave;
@@ -9,6 +9,8 @@ interface Props {
   onSetPrice: (level: BakeryPriceLevel) => void;
   onRespondToCompetitor: (response: string) => void;
   onOpenBakery: () => void;
+  onPurchaseBakery?: () => void;
+  onTakeLoanAndBuy?: (amount: number, mode: 'auto' | 'manual') => void;
 }
 
 const PRICE_LABELS: Record<BakeryPriceLevel, { label: string; color: string; desc: string }> = {
@@ -25,13 +27,145 @@ const COMPETITOR_RESPONSES = [
   { id: 'nothing',     label: 'Do Nothing',         emoji: '🤷', cost: 0,  desc: 'Hope they go away on their own...' },
 ];
 
-export default function BakeryPanel({ save, onRunShift, onSetPrice, onRespondToCompetitor, onOpenBakery }: Props) {
+export default function BakeryPanel({ save, onRunShift, onSetPrice, onRespondToCompetitor, onOpenBakery, onPurchaseBakery, onTakeLoanAndBuy }: Props) {
   const bakery = save.bakery;
   const tokensLeft = save.tokens.total - save.tokens.spent;
   const [showPnL, setShowPnL] = useState(false);
   const [animatingPnL, setAnimatingPnL] = useState(false);
+  const [loanAmount, setLoanAmount] = useState('2500');
+  const [paymentMode, setPaymentMode] = useState<'auto' | 'manual'>('auto');
+  const [showLoanSection, setShowLoanSection] = useState(false);
 
-  // Stage 2 unlocked but bakery not yet opened — show the "Open" CTA
+  // Stage 2 unlocked but bakery not purchased — show purchase screen
+  if (!bakery && !save.townBank?.bakeryPurchased) {
+    const bankBalance = save.townBank?.balance ?? 0;
+    const canBuyOutright = save.coins >= BAKERY_PURCHASE_COST;
+    const loanAmt = Number(loanAmount);
+    const loanTotal = loanAmt >= 100 ? Math.ceil(loanAmt * (1 + LOAN_INTEREST_RATE)) : 0;
+    const loanDaily = loanTotal ? Math.ceil(loanTotal / 34) : 0;
+
+    return (
+      <div className="space-y-4">
+        {/* Header */}
+        <div className="text-center py-2">
+          <div className="text-5xl mb-2">🥖</div>
+          <div className="font-black text-gray-800 text-xl">Buy the Bakery</div>
+          <div className="text-sm text-gray-500 mt-1">A real investment in your future</div>
+        </div>
+
+        {/* Cost summary */}
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-bold text-amber-800">Bakery Cost</span>
+            <span className="text-2xl font-black text-amber-700">${BAKERY_PURCHASE_COST.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between text-xs text-amber-600">
+            <span>Your cash</span>
+            <span className="font-bold">${save.coins}</span>
+          </div>
+          <div className="flex justify-between text-xs text-amber-600">
+            <span>Bank balance</span>
+            <span className="font-bold">${bankBalance.toFixed(2)}</span>
+          </div>
+        </div>
+
+        {/* Grandpa quote */}
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
+          <span className="text-xl">👴</span>
+          <p className="text-xs text-amber-800 italic leading-relaxed">
+            "This is a real investment. It'll cost more than your lemonade stand ever did — but it can earn more too."
+          </p>
+        </div>
+
+        {/* Buy outright */}
+        <button
+          onClick={onPurchaseBakery}
+          disabled={!canBuyOutright || !onPurchaseBakery}
+          className="w-full py-4 bg-green-500 hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-base rounded-2xl transition-colors shadow-lg"
+        >
+          Buy Outright 💵 ${BAKERY_PURCHASE_COST.toLocaleString()}
+        </button>
+        {!canBuyOutright && (
+          <p className="text-center text-xs text-gray-400">Need ${BAKERY_PURCHASE_COST - save.coins} more to buy outright</p>
+        )}
+
+        {/* Loan section */}
+        {!showLoanSection ? (
+          <button
+            onClick={() => setShowLoanSection(true)}
+            className="w-full py-3 border-2 border-dashed border-orange-300 hover:border-orange-400 hover:bg-orange-50 text-orange-700 font-bold text-sm rounded-2xl transition-all"
+          >
+            💳 Take a Loan to Buy
+          </button>
+        ) : (
+          <div className="border-2 border-orange-200 rounded-2xl p-4 space-y-3">
+            <div className="font-bold text-gray-700 text-sm">Borrow to buy the bakery</div>
+
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Loan amount ($100 – $3,000)</label>
+              <input
+                type="number"
+                min={100}
+                max={3000}
+                value={loanAmount}
+                onChange={e => setLoanAmount(e.target.value)}
+                className="w-full border-2 border-orange-200 rounded-xl px-4 py-2.5 text-center text-lg focus:outline-none focus:border-orange-400"
+              />
+            </div>
+
+            {/* Payment mode toggle */}
+            <div>
+              <div className="text-xs text-gray-500 mb-1.5">Payment mode</div>
+              <div className="flex gap-2">
+                {(['auto', 'manual'] as const).map(mode => (
+                  <button
+                    key={mode}
+                    onClick={() => setPaymentMode(mode)}
+                    className={`flex-1 py-2 text-xs font-bold rounded-xl border-2 transition-all ${
+                      paymentMode === mode
+                        ? 'bg-orange-500 border-orange-500 text-white'
+                        : 'bg-white border-gray-200 text-gray-500'
+                    }`}
+                  >
+                    {mode === 'auto' ? '🤖 Auto Pay' : '✋ Manual Pay'}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                {paymentMode === 'auto' ? 'Daily payments auto-deducted at midnight' : 'You control when to pay — watch for late fees!'}
+              </p>
+            </div>
+
+            {loanAmt >= 100 && (
+              <div className="text-xs text-gray-500 space-y-1 bg-gray-50 rounded-xl p-3">
+                <div className="flex justify-between"><span>Borrow</span><span className="font-bold">${loanAmt}</span></div>
+                <div className="flex justify-between"><span>Total repayable</span><span className="font-bold">${loanTotal}</span></div>
+                <div className="flex justify-between"><span>Daily payment (~34 days)</span><span className="font-bold">${loanDaily}</span></div>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowLoanSection(false)}
+                className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold rounded-xl text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { if (onTakeLoanAndBuy) onTakeLoanAndBuy(loanAmt, paymentMode); }}
+                disabled={loanAmt < 100 || loanAmt > 3000 || !onTakeLoanAndBuy}
+                className="flex-1 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white font-bold rounded-xl text-sm"
+              >
+                Borrow & Buy 🥖
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Fallback: stage 2 unlocked but bakery not yet opened via old system
   if (!bakery) {
     return (
       <div className="space-y-4 text-center py-6">

@@ -30,15 +30,17 @@ import EmployeesPanel from '@/components/EmployeesPanel';
 import DogWalkingPanel from '@/components/DogWalkingPanel';
 import TownBankPanel from '@/components/TownBankPanel';
 import TownParkPanel from '@/components/TownParkPanel';
+import DayPlanModal from '@/components/DayPlanModal';
+import DaySummaryModal from '@/components/DaySummaryModal';
 import {
   checkStage2Eligible, activateStage2, advanceStage2Day,
   setBakeryPrice, runBakeryShift, respondToCompetitor,
   hireEmployee, startTraining, promoteToManager, assignEmployee,
-  goWalkDogs, depositToBank, withdrawFromBank, takeLoan,
+  goWalkDogs, depositToBank, withdrawFromBank, takeLoan, purchaseBakery, makeManualPayment, advanceBankDay,
   contributeToTownPark, addParkAddition, initBakery, initDogWalking,
   type DogWalkResult,
 } from '@/lib/stage2';
-import type { BakeryProductId, BakeryPriceLevel, EmployeeAssignment } from '@/types/game';
+import type { BakeryProductId, BakeryPriceLevel, EmployeeAssignment, DaySummary, DaySummaryBusiness } from '@/types/game';
 import DreamCelebration, { NEXT_GOALS } from '@/components/DreamCelebration';
 import GardenPanel from '@/components/GardenPanel';
 import PetPanel, { READOPT_COST } from '@/components/PetPanel';
@@ -70,6 +72,8 @@ export default function Home() {
   const [activeChat, setActiveChat] = useState<typeof QUICK_CHATS[0] | null>(null);
   const [showBridge, setShowBridge] = useState(false);
   const [showStage2Finale, setShowStage2Finale] = useState(false);
+  const [showDayPlan, setShowDayPlan] = useState(false);
+  const [showDaySummary, setShowDaySummary] = useState(false);
   const [activeLocation, setActiveLocation] = useState<GameLocation | null>('stand');
 
   useEffect(() => {
@@ -364,13 +368,43 @@ export default function Home() {
     addLog(makeEntry('🏦', `Withdrew $${amount} from the Town Bank.`, 'neutral'));
   }
 
-  function handleTakeLoan(amount: number) {
+  function handleTakeLoan(amount: number, mode: 'auto' | 'manual' = 'auto') {
     if (!save) return;
-    const result = takeLoan(save, amount);
+    const result = takeLoan(save, amount, mode);
     if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
     setSave(result);
-    addLog(makeEntry('💳', `Borrowed $${amount} from the bank. Daily payments will be auto-deducted.`, 'event'));
+    const modeNote = mode === 'auto' ? 'Daily payments will be auto-deducted.' : 'Remember to make payments manually to avoid late fees!';
+    addLog(makeEntry('💳', `Borrowed $${amount} from the bank. ${modeNote}`, 'event'));
     addLog(makeEntry('👴', 'Grandpa: "Remember — borrowed money isn\'t free money. Some of what you earn is already spoken for."', 'neutral'));
+  }
+
+  function handlePurchaseBakery() {
+    if (!save) return;
+    const result = purchaseBakery(save);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    setSave(result);
+    addLog(makeEntry('🥖', 'Bakery purchased! It\'s yours — start baking to earn and build your reputation.', 'event'));
+  }
+
+  function handleTakeLoanAndBuy(amount: number, mode: 'auto' | 'manual') {
+    if (!save) return;
+    // Take loan first, then purchase bakery
+    const loanResult = takeLoan(save, amount, mode);
+    if ('error' in loanResult) { addLog(makeEntry('❌', loanResult.error, 'bad')); return; }
+    const purchaseResult = purchaseBakery(loanResult);
+    if ('error' in purchaseResult) { addLog(makeEntry('❌', purchaseResult.error, 'bad')); return; }
+    setSave(purchaseResult);
+    addLog(makeEntry('💳', `Borrowed $${amount} and used it to buy the bakery!`, 'event'));
+    addLog(makeEntry('🥖', 'Bakery is yours! Now make it pay off.', 'event'));
+  }
+
+  function handleManualLoanPayment() {
+    if (!save) return;
+    const result = makeManualPayment(save);
+    if ('error' in result) { addLog(makeEntry('❌', result.error, 'bad')); return; }
+    const payment = save.townBank?.loan?.dailyPayment ?? 0;
+    setSave(result);
+    addLog(makeEntry('💳', `Made loan payment of $${payment}.`, 'good'));
   }
 
   function handleContributeToPark(amount: number) {
@@ -708,8 +742,75 @@ export default function Home() {
     }
   }
 
+  function handleDayPlanConfirmed(assignments: { employeeId: string; assignment: EmployeeAssignment }[]) {
+    if (!save) return;
+    // Apply assignments to employees
+    let updated = { ...save };
+    for (const { employeeId, assignment } of assignments) {
+      const result = assignEmployee(updated, employeeId, assignment);
+      if (!('error' in result)) updated = result;
+    }
+    updated = { ...updated, dayPlanConfirmed: true };
+    setSave(updated);
+    setShowDayPlan(false);
+  }
+
+  function handleDaySummaryReviewed() {
+    if (!save) return;
+    setSave({ ...save, daySummaryReviewed: true });
+    setShowDaySummary(false);
+    // Show day plan modal if stage2 is active
+    if (save.worldUnlocks.stage2 && (save.employees ?? []).length > 0) {
+      setShowDayPlan(true);
+    }
+  }
+
   function handleNextDay() {
     if (!save) return;
+
+    // Build DaySummary before advancing
+    const coinsAtStart = save.coins;
+    const businesses: DaySummaryBusiness[] = [];
+    if (save.bakery) {
+      const repDelta = save.bakery.priceLevel === 'high' ? -1 : 0;
+      businesses.push({
+        name: 'Bakery',
+        emoji: '🥖',
+        revenue: save.bakery.todayRevenue,
+        expenses: save.bakery.todayExpenses,
+        profit: save.bakery.todayRevenue - save.bakery.todayExpenses,
+        repDelta,
+        notes: [
+          ...(save.bakery.competitorActive ? ['Rival bakery active'] : []),
+          ...(save.bakery.priceLevel === 'high' ? ['High pricing hurt reputation'] : []),
+        ],
+      });
+    }
+    if (save.dogWalking && save.dogWalking.walksToday > 0) {
+      businesses.push({
+        name: 'Dog Walking',
+        emoji: '🐕',
+        revenue: save.dogWalking.walksToday * 14,
+        expenses: 0,
+        profit: save.dogWalking.walksToday * 14,
+        repDelta: 0,
+        notes: [],
+      });
+    }
+
+    // Get bank result preview (simulate advance for summary data)
+    let bankResult = { loanPayment: undefined as number | undefined, loanMissed: false, lateFee: undefined as number | undefined, pastDue: undefined as number | undefined };
+    if (save.townBank?.loan && save.townBank.loan.remainingDays > 0 && save.townBank.loan.paymentMode === 'auto') {
+      const payment = Math.min(save.townBank.loan.dailyPayment, save.townBank.loan.totalRepayable - save.townBank.loan.amountRepaid);
+      if (save.coins >= payment) {
+        bankResult.loanPayment = payment;
+      } else {
+        bankResult.loanMissed = true;
+        bankResult.lateFee = 5;
+        bankResult.pastDue = (save.townBank.loan.pastDue ?? 0) + payment + 5;
+      }
+    }
+
     // advanceGardenDay BEFORE advanceDay so storm damage uses TODAY's weather,
     // not the new (tomorrow's) weather that advanceDay rolls
     let updated = advanceGardenDay(save);
@@ -718,7 +819,32 @@ export default function Home() {
     updated = advanceBikeDay(updated);
     updated = advancePondDay(updated);
     updated = advanceSecondStandDay(updated);
+    // Run full stage2 day (bank result captured separately for summary)
     updated = advanceStage2Day(updated);
+
+    // Build final summary
+    const cashChange = updated.coins - coinsAtStart;
+    const daySummary: DaySummary = {
+      day: save.dayNumber,
+      businesses,
+      cashChange,
+      savingsBalance: updated.townBank?.balance ?? 0,
+      savingsInterest: updated.townBank?.interestEarnedToday ?? 0,
+      loanPayment: bankResult.loanPayment,
+      loanMissed: bankResult.loanMissed,
+      lateFee: bankResult.lateFee,
+      pastDue: bankResult.pastDue,
+      totalPastDue: updated.townBank?.loan?.pastDue,
+    };
+
+    // Set summary and flags
+    updated = {
+      ...updated,
+      lastDaySummary: daySummary,
+      daySummaryReviewed: false,
+      dayPlanConfirmed: false,
+    };
+
     setSave(updated);
     const weatherEmojis: Record<string, string> = { sunny: '☀️', cloudy: '⛅', rainy: '🌧️', stormy: '⛈️' };
     const demandNote = weatherDemandMultiplier(updated.weather) < 1 ? ' Demand will be lower today.' : ' Great day for lemonade!';
@@ -773,6 +899,10 @@ export default function Home() {
     }
     // Nudge player toward home after ending day
     setActiveLocation('home');
+    // Show day summary modal for stage 2 players
+    if (updated.worldUnlocks.stage2) {
+      setShowDaySummary(true);
+    }
   }
 
   // ---- Render ----
@@ -817,6 +947,22 @@ export default function Home() {
           characterEmoji={getCharacterEmoji(save.avatarId)}
           toStage={2}
           onComplete={() => setShowBridge(false)}
+        />
+      )}
+
+      {/* Day Summary modal (shown after sleep, before next morning) */}
+      {showDaySummary && save?.lastDaySummary && !save.daySummaryReviewed && (
+        <DaySummaryModal
+          summary={save.lastDaySummary}
+          onReview={handleDaySummaryReviewed}
+        />
+      )}
+
+      {/* Day Plan modal (morning employee assignments) */}
+      {showDayPlan && save && !save.dayPlanConfirmed && save.worldUnlocks.stage2 && (
+        <DayPlanModal
+          save={save}
+          onConfirm={handleDayPlanConfirmed}
         />
       )}
 
@@ -983,6 +1129,8 @@ export default function Home() {
                 onSetPrice={handleSetBakeryPrice}
                 onRespondToCompetitor={handleRespondToCompetitor}
                 onOpenBakery={handleOpenBakery}
+                onPurchaseBakery={handlePurchaseBakery}
+                onTakeLoanAndBuy={handleTakeLoanAndBuy}
               />
             ) : activeLocation === 'employees' ? (
               <EmployeesPanel
@@ -1004,6 +1152,7 @@ export default function Home() {
                 onDeposit={handleBankDeposit}
                 onWithdraw={handleBankWithdraw}
                 onTakeLoan={handleTakeLoan}
+                onManualPayment={handleManualLoanPayment}
               />
             ) : activeLocation === 'townpark' ? (
               <TownParkPanel

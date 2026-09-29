@@ -81,6 +81,21 @@ export function loadSave(): PlayerSave | null {
     if (save.employees === undefined) save.employees = [];
     if (save.stage2FinaleShown === undefined) save.stage2FinaleShown = false;
 
+    // ---- Stage 2 revision: day plan + summary ----
+    if (save.dayPlanConfirmed === undefined) save.dayPlanConfirmed = true;  // existing players skip first plan
+    if (save.daySummaryReviewed === undefined) save.daySummaryReviewed = true;
+
+    // ---- TownBank new fields ----
+    if (save.townBank && save.townBank.bakeryCost === undefined) save.townBank.bakeryCost = 2500;
+    if (save.townBank && save.townBank.bakeryPurchased === undefined) {
+      save.townBank.bakeryPurchased = !!save.worldUnlocks.bakery; // infer from existing state
+    }
+
+    // ---- BankLoan new fields ----
+    if (save.townBank?.loan && save.townBank.loan.pastDue === undefined) save.townBank.loan.pastDue = 0;
+    if (save.townBank?.loan && save.townBank.loan.lateFees === undefined) save.townBank.loan.lateFees = 0;
+    if (save.townBank?.loan && save.townBank.loan.paymentMode === undefined) save.townBank.loan.paymentMode = 'auto';
+
     // ---- avatarId — default for old saves ----
     if (!save.avatarId || save.avatarId === 'default') save.avatarId = 'girl1';
 

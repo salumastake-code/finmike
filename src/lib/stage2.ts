@@ -38,6 +38,7 @@ export const BAKERY_PRODUCTS: Record<BakeryProductId, {
 };
 
 export const BAKERY_OPEN_COST = 2000; // dream project cost to open bakery
+export const BAKERY_PURCHASE_COST = 2500; // direct purchase price for the bakery
 export const BAKERY_DAILY_RENT = 8;
 export const BAKERY_DAILY_MAINTENANCE = 2;
 
@@ -87,9 +88,17 @@ export function runBakeryShift(save: PlayerSave, productId: BakeryProductId): Pl
   const expenses = product.ingredientCost + BAKERY_DAILY_RENT + BAKERY_DAILY_MAINTENANCE;
   const profit = revenue - expenses;
 
-  // Reputation impact
-  const repDelta = product.reputationImpact[priceLevel] + (save.bakery.reputation < 30 ? -1 : 0);
-  const newRep = Math.max(0, Math.min(100, (save.bakery.reputation ?? 50) + repDelta));
+  // Reputation impact — only apply for high pricing penalty; normal operation = no rep change
+  let repDelta = 0;
+  if (priceLevel === 'high') repDelta = -1;
+  const currentRepScore = save.bakery.reputation ?? 50;
+  const newRep = repDelta !== 0 ? Math.max(0, Math.min(100, currentRepScore + repDelta)) : currentRepScore;
+
+  const repUpdate = repDelta !== 0 && save.reputation ? {
+    ...save.reputation,
+    score: newRep,
+    history: [...(save.reputation.history ?? []).slice(-20), { day: save.dayNumber, delta: repDelta, reason: `Bakery high pricing` }],
+  } : save.reputation;
 
   return {
     ...save,
@@ -106,18 +115,15 @@ export function runBakeryShift(save: PlayerSave, productId: BakeryProductId): Pl
       todayExpenses: save.bakery.todayExpenses + expenses,
       reputation: newRep,
     },
-    reputation: save.reputation ? {
-      ...save.reputation,
-      score: newRep,
-      history: [...(save.reputation.history ?? []).slice(-20), { day: save.dayNumber, delta: repDelta, reason: `Bakery ${priceLevel} pricing` }],
-    } : undefined,
+    reputation: repUpdate,
   };
 }
 
 export function advanceBakeryDay(save: PlayerSave): PlayerSave {
   if (!save.bakery) return save;
-  // If bakery didn't operate at all today, small rep hit
-  const repHit = save.bakery.batchesToday === 0 && !hasAssignedBakeryEmployee(save) ? -2 : 0;
+  // If bakery didn't operate at all today and no employee assigned, rep hit -2
+  const bakeryIdle = save.bakery.batchesToday === 0 && !hasAssignedBakeryEmployee(save);
+  const repHit = bakeryIdle ? -2 : 0;
   const newRep = Math.max(0, Math.min(100, save.bakery.reputation + repHit));
 
   // Check if competitor event should trigger (around day 10 of stage 2)
@@ -277,7 +283,6 @@ export function advanceEmployeeDay(save: PlayerSave): PlayerSave {
   if (employees.length === 0) return save;
 
   let coinsSpent = 0;
-  let totalEarnedFromEmployees = 0;
   let repDelta = 0;
 
   const updated = employees.map(emp => {
@@ -305,34 +310,34 @@ export function advanceEmployeeDay(save: PlayerSave): PlayerSave {
     // Low training at bakery hurts reputation
     if (emp.assignment === 'bakery' && trainingLevel < 20) repDelta -= 1;
 
-    // Employee earnings for player — realistic revenue per assignment minus wage
-    // Stand: ~$30 revenue/day (8 customers × avg $2.50 price × ~1.5 weather avg) minus wage
-    // Bakery: employee runs 1 batch ~ $24 revenue minus $35 ingredients/rent/maintenance = net negative
-    //   but they free up player energy — net earning tracks revenue side only, costs tracked separately
-    // Dog walking: 2 dogs = $14 revenue, minus $15 wage = -$1 but frees energy
-    // We track a simplified "revenue generated" not net profit to avoid double-counting with wages
-    let earnedToday = 0;
-    if (emp.assignment === 'stand1')      earnedToday = 30; // revenue generated, wage already deducted
-    if (emp.assignment === 'stand2')      earnedToday = 25;
-    if (emp.assignment === 'bakery')      earnedToday = 45; // bakery revenue > wage, player still profitable
-    if (emp.assignment === 'dog_walking') earnedToday = 14;
-    totalEarnedFromEmployees += earnedToday;
+    // Employees do NOT generate passive income — revenue comes from the business they're assigned to
+    // (runBakeryShift, goWalkDogs, etc.). Wages are still deducted.
+    const earnedToday = 0;
 
-    return { ...emp, trainingDaysRemaining, trainingLevel, stage, totalEarnedForPlayer: emp.totalEarnedForPlayer + Math.max(0, earnedToday - wage) };
+    return { ...emp, trainingDaysRemaining, trainingLevel, stage, totalEarnedForPlayer: emp.totalEarnedForPlayer + earnedToday };
   });
 
-  const newRep = save.reputation
+  const newRep = save.reputation && repDelta !== 0
     ? { ...save.reputation, score: Math.max(0, Math.min(100, save.reputation.score + repDelta)) }
-    : undefined;
+    : save.reputation;
 
   return {
     ...save,
-    coins: Math.max(0, save.coins - coinsSpent + totalEarnedFromEmployees),
+    coins: Math.max(0, save.coins - coinsSpent),
     totalSpent: save.totalSpent + coinsSpent,
-    totalEarned: save.totalEarned + totalEarnedFromEmployees,
     employees: updated,
     reputation: newRep,
   };
+}
+
+// ============================================================
+// REPUTATION HELPERS
+// ============================================================
+
+export function shouldGainRep(currentScore: number, delta: number): boolean {
+  if (currentScore >= 90 && delta <= 3) return false;
+  if (currentScore >= 76 && delta <= 1) return false;
+  return true;
 }
 
 // ============================================================
@@ -367,11 +372,15 @@ export function goWalkDogs(save: PlayerSave, dogs: 1 | 2): DogWalkResult | { err
   const totalWalks = save.dogWalking.totalWalks + 1;
   // Mishap check — every DOG_WALK_MISHAP_INTERVAL walks
   const isMishap = totalWalks % DOG_WALK_MISHAP_INTERVAL === 0;
-  const repDelta = isMishap ? -7 : (dogs === 2 ? 1 : 0);
+  // Rep: mishap = -7; first 5 walks = +1 (establishing reputation); routine walks = 0
+  const repDelta = isMishap ? -7 : (totalWalks <= 5 ? 1 : 0);
   const earnings = isMishap ? 0 : option.earnings;
 
+  const currentScore = save.reputation?.score ?? 50;
+  const effectiveRepDelta = repDelta > 0 && !shouldGainRep(currentScore, repDelta) ? 0 : repDelta;
+  const newRepScore = Math.max(0, Math.min(100, currentScore + effectiveRepDelta));
   const newRep = save.reputation
-    ? { ...save.reputation, score: Math.max(0, Math.min(100, save.reputation.score + repDelta)), history: [...save.reputation.history.slice(-20), { day: save.dayNumber, delta: repDelta, reason: isMishap ? 'Dog got off leash!' : `Walked ${dogs} dog${dogs > 1 ? 's' : ''}` }] }
+    ? { ...save.reputation, score: newRepScore, history: effectiveRepDelta !== 0 ? [...save.reputation.history.slice(-20), { day: save.dayNumber, delta: effectiveRepDelta, reason: isMishap ? 'Dog got off leash!' : `Walked ${dogs} dog${dogs > 1 ? 's' : ''}` }] : save.reputation.history }
     : undefined;
 
   const nextSave: PlayerSave = {
@@ -389,17 +398,13 @@ export function goWalkDogs(save: PlayerSave, dogs: 1 | 2): DogWalkResult | { err
 
 export function advanceDogWalkingDay(save: PlayerSave): PlayerSave {
   if (!save.dogWalking) return save;
-  // If a walker employee is assigned, they walk 2 dogs automatically
+  // If a walker employee is assigned, they walk 2 dogs automatically (wages deducted via advanceEmployeeDay)
   const walkerEmp = (save.employees ?? []).find(e => e.assignment === 'dog_walking');
   if (walkerEmp) {
-    const earnings = Math.max(0, 14 - DOG_WALKER_WAGE);
-    const repDelta = earnings > 0 ? 1 : 0;
+    // Employee walks = no player energy spent, but no extra passive income either (wage already covers cost)
     return {
       ...save,
-      coins: save.coins + earnings,
-      totalEarned: save.totalEarned + earnings,
       dogWalking: { ...save.dogWalking, walksToday: 0, totalWalks: save.dogWalking.totalWalks + 1 },
-      reputation: save.reputation ? { ...save.reputation, score: Math.min(100, save.reputation.score + repDelta) } : undefined,
     };
   }
   return { ...save, dogWalking: { ...save.dogWalking, walksToday: 0 } };
@@ -413,7 +418,7 @@ export const BANK_INTEREST_RATE = 0.003; // 0.3%/day (slightly better than piggy
 export const LOAN_INTEREST_RATE = 0.13;  // 13% total interest on loan
 
 export function initTownBank(piggyBankBalance: number): TownBank {
-  return { balance: piggyBankBalance, interestEarnedToday: 0, totalInterestEarned: 0 };
+  return { balance: piggyBankBalance, interestEarnedToday: 0, totalInterestEarned: 0, bakeryCost: 2500, bakeryPurchased: false };
 }
 
 export function depositToBank(save: PlayerSave, amount: number): PlayerSave | { error: string } {
@@ -429,23 +434,72 @@ export function withdrawFromBank(save: PlayerSave, amount: number): PlayerSave |
   return { ...save, coins: save.coins + amount, townBank: { ...save.townBank, balance: save.townBank.balance - amount } };
 }
 
-export function takeLoan(save: PlayerSave, principal: number): PlayerSave | { error: string } {
+export function takeLoan(save: PlayerSave, principal: number, paymentMode: 'auto' | 'manual' = 'auto'): PlayerSave | { error: string } {
   if (!save.townBank) return { error: 'Town Bank not unlocked!' };
   if (save.townBank.loan && save.townBank.loan.remainingDays > 0) return { error: "You already have an active loan. Pay it off first!" };
   if (principal < 100) return { error: 'Minimum loan is $100.' };
-  if (principal > 2000) return { error: 'Maximum loan is $2,000.' };
+  if (principal > 3000) return { error: 'Maximum loan is $3,000.' };
+  // Block new loans if pastDue balance exists
+  if ((save.townBank.loan?.pastDue ?? 0) > 0) return { error: 'You have a past-due balance. Pay it off before taking a new loan!' };
 
   const totalRepayable = Math.ceil(principal * (1 + LOAN_INTEREST_RATE));
   const dailyPayment = Math.ceil(totalRepayable / 34);
   const remainingDays = Math.ceil(totalRepayable / dailyPayment);
 
-  const loan: BankLoan = { principal, totalRepayable, dailyPayment, remainingDays, amountRepaid: 0, takenOnDay: save.dayNumber, missedPayments: 0 };
+  const loan: BankLoan = { principal, totalRepayable, dailyPayment, remainingDays, amountRepaid: 0, takenOnDay: save.dayNumber, missedPayments: 0, pastDue: 0, lateFees: 0, paymentMode };
 
   return { ...save, coins: save.coins + principal, totalEarned: save.totalEarned + principal, townBank: { ...save.townBank, loan } };
 }
 
-export function advanceBankDay(save: PlayerSave): PlayerSave {
-  if (!save.townBank) return save;
+export function purchaseBakery(save: PlayerSave): PlayerSave | { error: string } {
+  if (!save.townBank) return { error: 'Town Bank not unlocked!' };
+  if (save.coins < BAKERY_PURCHASE_COST) return { error: `You need $${BAKERY_PURCHASE_COST} to buy the bakery. You have $${save.coins}.` };
+  const updated: PlayerSave = {
+    ...save,
+    coins: save.coins - BAKERY_PURCHASE_COST,
+    totalSpent: save.totalSpent + BAKERY_PURCHASE_COST,
+    townBank: { ...save.townBank, bakeryPurchased: true },
+    bakery: initBakery(save.dayNumber),
+    worldUnlocks: { ...save.worldUnlocks, bakery: true },
+  };
+  return updated;
+}
+
+export function makeManualPayment(save: PlayerSave): PlayerSave | { error: string } {
+  if (!save.townBank?.loan) return { error: 'No active loan.' };
+  const loan = save.townBank.loan;
+  if (loan.remainingDays <= 0) return { error: 'Loan is already paid off.' };
+  const payment = Math.min(loan.dailyPayment, loan.totalRepayable - loan.amountRepaid);
+  if (save.coins < payment) return { error: `You need $${payment} to make this payment. You only have $${save.coins}.` };
+
+  // Clear pastDue and lateFees if they exist
+  const newPastDue = 0;
+  const newLateFees = 0;
+
+  const updatedLoan: BankLoan = {
+    ...loan,
+    amountRepaid: loan.amountRepaid + payment,
+    remainingDays: loan.remainingDays - 1,
+    pastDue: newPastDue,
+    lateFees: newLateFees,
+  };
+
+  return {
+    ...save,
+    coins: save.coins - payment,
+    townBank: { ...save.townBank, loan: updatedLoan },
+  };
+}
+
+export interface BankDayResult {
+  loanPayment?: number;
+  loanMissed?: boolean;
+  lateFee?: number;
+  pastDue?: number;
+}
+
+export function advanceBankDay(save: PlayerSave): { save: PlayerSave; bankResult: BankDayResult } {
+  if (!save.townBank) return { save, bankResult: {} };
 
   // Interest
   const interest = Math.round(save.townBank.balance * BANK_INTEREST_RATE * 100) / 100;
@@ -453,18 +507,32 @@ export function advanceBankDay(save: PlayerSave): PlayerSave {
 
   // Loan repayment
   let coins = save.coins;
+  const bankResult: BankDayResult = {};
+
   if (bank.loan && bank.loan.remainingDays > 0) {
     const payment = Math.min(bank.loan.dailyPayment, bank.loan.totalRepayable - bank.loan.amountRepaid);
-    if (coins >= payment) {
-      coins -= payment;
-      bank = { ...bank, loan: { ...bank.loan, amountRepaid: bank.loan.amountRepaid + payment, remainingDays: bank.loan.remainingDays - 1 } };
-    } else {
-      // Missed payment — flag it but don't penalise heavily
-      bank = { ...bank, loan: { ...bank.loan, missedPayments: bank.loan.missedPayments + 1 } };
+    const mode = bank.loan.paymentMode ?? 'auto';
+
+    if (mode === 'auto') {
+      if (coins >= payment) {
+        coins -= payment;
+        bank = { ...bank, loan: { ...bank.loan, amountRepaid: bank.loan.amountRepaid + payment, remainingDays: bank.loan.remainingDays - 1 } };
+        bankResult.loanPayment = payment;
+      } else {
+        // Missed payment — add to pastDue and charge $5 late fee
+        const lateFee = 5;
+        const newPastDue = (bank.loan.pastDue ?? 0) + payment + lateFee;
+        const newLateFees = (bank.loan.lateFees ?? 0) + lateFee;
+        bank = { ...bank, loan: { ...bank.loan, missedPayments: bank.loan.missedPayments + 1, pastDue: newPastDue, lateFees: newLateFees } };
+        bankResult.loanMissed = true;
+        bankResult.lateFee = lateFee;
+        bankResult.pastDue = newPastDue;
+      }
     }
+    // If manual mode: do nothing automatically — player must call makeManualPayment
   }
 
-  return { ...save, coins, townBank: bank };
+  return { save: { ...save, coins, townBank: bank }, bankResult };
 }
 
 // ============================================================
@@ -587,8 +655,8 @@ export function activateStage2(save: PlayerSave): PlayerSave {
 
 export function advanceStage2Day(save: PlayerSave): PlayerSave {
   if (!save.worldUnlocks.stage2) return save;
-  let updated = advanceBankDay(save);
-  updated = advanceBakeryDay(updated);
+  const { save: afterBank } = advanceBankDay(save);
+  let updated = advanceBakeryDay(afterBank);
   updated = advanceEmployeeDay(updated);
   updated = advanceDogWalkingDay(updated);
   // Park flower bonus

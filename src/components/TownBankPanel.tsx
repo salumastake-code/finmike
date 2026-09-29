@@ -7,13 +7,15 @@ interface Props {
   save: PlayerSave;
   onDeposit: (amount: number) => void;
   onWithdraw: (amount: number) => void;
-  onTakeLoan: (amount: number) => void;
+  onTakeLoan: (amount: number, mode: 'auto' | 'manual') => void;
+  onManualPayment?: () => void;
 }
 
-export default function TownBankPanel({ save, onDeposit, onWithdraw, onTakeLoan }: Props) {
+export default function TownBankPanel({ save, onDeposit, onWithdraw, onTakeLoan, onManualPayment }: Props) {
   const bank = save.townBank;
   const [loanInput, setLoanInput] = useState('');
   const [showLoan, setShowLoan] = useState(false);
+  const [paymentMode, setPaymentMode] = useState<'auto' | 'manual'>('auto');
 
   if (!bank) return <div className="text-center py-8 text-gray-400">Town Bank not yet unlocked.</div>;
 
@@ -22,8 +24,23 @@ export default function TownBankPanel({ save, onDeposit, onWithdraw, onTakeLoan 
   const depositOptions = [10, 25, 50, 100];
   const withdrawOptions = [10, 25, 50];
 
+  const hasPastDue = (bank?.loan?.pastDue ?? 0) > 0;
+  const isManualLoan = bank?.loan?.paymentMode === 'manual';
+
   return (
     <div className="space-y-3">
+      {/* Past Due Banner */}
+      {hasPastDue && bank?.loan && (
+        <div className="bg-red-50 border-2 border-red-400 rounded-2xl p-3">
+          <div className="font-bold text-red-700 text-sm">
+            ⚠️ Payment Past Due: ${bank.loan.pastDue} — No new loans until resolved
+          </div>
+          {bank.loan.lateFees > 0 && (
+            <div className="text-xs text-red-500 mt-1">Cumulative late fees: ${bank.loan.lateFees}</div>
+          )}
+        </div>
+      )}
+
       <div className="flex items-center gap-2">
         <span className="text-3xl">🏦</span>
         <div>
@@ -85,7 +102,9 @@ export default function TownBankPanel({ save, onDeposit, onWithdraw, onTakeLoan 
             <span className="text-xl">📋</span>
             <div>
               <div className="font-bold text-orange-800">Active Loan</div>
-              <div className="text-xs text-orange-500">$${loan.dailyPayment}/day auto-deducted</div>
+              <div className="text-xs text-orange-500">
+                {isManualLoan ? '✋ Manual Pay — you choose when to pay' : `$${loan.dailyPayment}/day auto-deducted`}
+              </div>
             </div>
           </div>
           <div className="space-y-1 text-xs">
@@ -110,6 +129,16 @@ export default function TownBankPanel({ save, onDeposit, onWithdraw, onTakeLoan 
             <div className="mt-2 text-xs text-red-500 bg-red-50 border border-red-200 rounded-xl p-2">
               ⚠️ {loan.missedPayments} missed payment{loan.missedPayments > 1 ? 's' : ''} — keep more cash on hand!
             </div>
+          )}
+          {/* Manual payment button */}
+          {isManualLoan && onManualPayment && (
+            <button
+              onClick={onManualPayment}
+              disabled={save.coins < loan.dailyPayment}
+              className="w-full mt-3 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white font-bold rounded-xl text-sm"
+            >
+              💳 Make Payment (${loan.dailyPayment})
+            </button>
           )}
           <div className="w-full bg-orange-100 rounded-full h-2 mt-3">
             <div className="bg-orange-400 h-2 rounded-full" style={{ width: `${(loan.amountRepaid / loan.totalRepayable) * 100}%` }} />
@@ -142,9 +171,32 @@ export default function TownBankPanel({ save, onDeposit, onWithdraw, onTakeLoan 
                   <div className="flex justify-between"><span>Daily payment (~34 days)</span><span className="font-bold">${Math.ceil(Math.ceil(Number(loanInput) * (1 + LOAN_INTEREST_RATE)) / 34)}</span></div>
                 </div>
               )}
+              {/* Payment mode toggle */}
+              <div>
+                <div className="text-xs text-gray-500 mb-1.5">Payment mode</div>
+                <div className="flex gap-2">
+                  {(['auto', 'manual'] as const).map(mode => (
+                    <button
+                      key={mode}
+                      onClick={() => setPaymentMode(mode)}
+                      className={`flex-1 py-2 text-xs font-bold rounded-xl border-2 transition-all ${
+                        paymentMode === mode
+                          ? 'bg-orange-500 border-orange-500 text-white'
+                          : 'bg-white border-gray-200 text-gray-500'
+                      }`}
+                    >
+                      {mode === 'auto' ? '🤖 Auto Pay' : '✋ Manual Pay'}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400 mt-1">
+                  {paymentMode === 'auto' ? 'Payments auto-deducted overnight' : 'You pay manually — watch for late fees!'}
+                </p>
+              </div>
+
               <div className="flex gap-2">
                 <button onClick={() => setShowLoan(false)} className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold rounded-xl text-sm">Cancel</button>
-                <button onClick={() => { onTakeLoan(Number(loanInput)); setShowLoan(false); setLoanInput(''); }}
+                <button onClick={() => { onTakeLoan(Number(loanInput), paymentMode); setShowLoan(false); setLoanInput(''); setPaymentMode('auto'); }}
                   disabled={!loanInput || Number(loanInput) < 100 || Number(loanInput) > 2000}
                   className="flex-1 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white font-bold rounded-xl text-sm">
                   Borrow it!

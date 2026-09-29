@@ -33,6 +33,8 @@ export interface TownBank {
   interestEarnedToday: number;
   totalInterestEarned: number;
   loan?: BankLoan;
+  bakeryCost: number;       // cost to buy the bakery (2500)
+  bakeryPurchased: boolean;
 }
 
 export interface BankLoan {
@@ -43,6 +45,9 @@ export interface BankLoan {
   amountRepaid: number;
   takenOnDay: number;
   missedPayments: number;   // days where player couldn't cover payment
+  pastDue: number;          // amount currently past due (principal of missed payments + late fees)
+  lateFees: number;         // cumulative late fees
+  paymentMode: 'auto' | 'manual'; // chosen at loan origination
 }
 
 // ---- Dream Goal ----
@@ -387,4 +392,40 @@ export interface PlayerSave {
 
   // Stage 2 state
   stage2FinaleShown?: boolean; // Grandpa's Stage 1 finale dialogue seen
+
+  // Day planning
+  dayPlan?: DayPlan;           // morning employee assignments
+  lastDaySummary?: DaySummary; // end-of-day results to review
+  dayPlanConfirmed: boolean;   // has today's plan been confirmed
+  daySummaryReviewed: boolean; // has today's summary been reviewed
+}
+
+// ---- Day Plan ----
+export interface DayPlan {
+  day: number;
+  assignments: { employeeId: string; assignment: EmployeeAssignment }[];
+}
+
+// ---- Day Summary ----
+export interface DaySummaryBusiness {
+  name: string;
+  emoji: string;
+  revenue: number;
+  expenses: number;
+  profit: number;
+  repDelta: number;
+  notes: string[]; // e.g. "Rain reduced demand", "Employee error"
+}
+
+export interface DaySummary {
+  day: number;
+  businesses: DaySummaryBusiness[];
+  cashChange: number;
+  savingsBalance: number;
+  savingsInterest: number;
+  loanPayment?: number;
+  loanMissed?: boolean;
+  lateFee?: number;
+  pastDue?: number;
+  totalPastDue?: number;
 }
